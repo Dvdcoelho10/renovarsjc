@@ -182,9 +182,11 @@ function normalizeYoutube(raw: unknown): YoutubeCopy {
   const base = defaultContent.youtube;
 
   return {
-    channel: asText(value.channel, base.channel),
+    enabled: typeof value.enabled === "boolean" ? value.enabled : base.enabled,
+    channel: asText(value.channel, base.channel).trim() || base.channel,
     videoUrl: asLink(value.videoUrl, base.videoUrl),
     channelUrl: asLink(value.channelUrl, base.channelUrl),
+    apiKey: asText(value.apiKey, base.apiKey).trim(),
     title: asText(value.title, base.title),
     description: asText(value.description, base.description),
   };

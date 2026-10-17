@@ -63,12 +63,16 @@ export type ImagesCopy = {
 };
 
 export type YoutubeCopy = {
+  /** Exibe a seção de transmissão no site. */
+  enabled: boolean;
   /** ID do canal (começa com "UC") ou link do canal. */
   channel: string;
   /** Link de uma transmissão específica (tem prioridade sobre o canal). */
   videoUrl: string;
   /** Link público do canal, usado no botão "Abrir no YouTube". */
   channelUrl: string;
+  /** Chave da YouTube Data API v3 usada para detectar a live. */
+  apiKey: string;
   title: string;
   description: string;
 };
@@ -246,19 +250,26 @@ export const defaultContent: SiteContent = {
     contactHero: "",
   },
 
+  // Canal oficial: TV Renovar | Assembleia de Deus Renovar.
+  // A chave da API fica no navegador; restrinja por HTTP referrer no Google Cloud.
   youtube: {
-    channel: "",
+    enabled: true,
+    channel: "UCpnq0C4PXHGSIV2mjNAVrBw",
     videoUrl: "",
-    channelUrl: "",
+    channelUrl: "https://www.youtube.com/channel/UCpnq0C4PXHGSIV2mjNAVrBw",
+    apiKey: "AIzaSyC4y3jOVmWITC-mAy3UUfhnGZYqdQq2Uu4",
     title: "Transmissão ao vivo",
     description:
-      "Acompanhe os cultos e as transmissões da igreja pelo canal oficial no YouTube.",
+      "Acompanhe os cultos e as transmissões da TV Renovar, o canal oficial da Assembleia de Deus Renovar no YouTube.",
   },
 
   events: [],
   messages: [],
   highlights: [],
 };
+
+// A chave da API é pública no bundle do site (uso típico do YouTube Data API
+// no navegador). Restrinja por HTTP referrer no Google Cloud.
 
 /** Extrai o ID de um vídeo do YouTube a partir de links comuns. */
 export function getYoutubeVideoId(value: string) {

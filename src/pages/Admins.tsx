@@ -88,7 +88,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       Boolean(getYoutubeVideoId(draft.youtube.videoUrl)) ||
       Boolean(getYoutubeChannelId(draft.youtube.channel));
 
-    if (youtubeInput && !youtubeReady) {
+    if (draft.youtube.enabled && youtubeInput && !youtubeReady) {
       setTab("youtube");
       toast.error(
         "A transmissão não seria exibida: use o ID do canal (UC...) ou o link de um vídeo/live.",
