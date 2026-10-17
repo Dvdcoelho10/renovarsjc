@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { church } from "@/content/site";
+import { useSiteContent } from "@/content/ContentProvider";
 
 type LogoProps = {
   className?: string;
@@ -21,7 +21,10 @@ export function Logo({
   showWordmark = true,
   size = "md",
 }: LogoProps) {
+  const { content } = useSiteContent();
+  const { church } = content;
   const s = sizes[size];
+  const logoSrc = church.logoUrl || "/logo-adr.png";
 
   return (
     <span className={cn("flex items-center gap-3", className)}>
@@ -35,12 +38,8 @@ export function Logo({
         )}
       >
         <img
-          src="/logo-adr.png"
-          alt={
-            showWordmark
-              ? ""
-              : `Emblema da ${church.shortName}`
-          }
+          src={logoSrc}
+          alt={showWordmark ? "" : `Emblema da ${church.shortName}`}
           className="h-full w-full object-contain"
           loading="eager"
           decoding="async"
@@ -62,7 +61,9 @@ export function Logo({
             className={cn(
               "mt-1 font-semibold uppercase tracking-[0.2em]",
               s.sub,
-              variant === "dark" ? "text-primary-foreground/75" : "text-muted-foreground",
+              variant === "dark"
+                ? "text-primary-foreground/75"
+                : "text-muted-foreground",
             )}
           >
             {church.acronym} · Desde 2013

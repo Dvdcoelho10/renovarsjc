@@ -1,45 +1,67 @@
 /**
- * Fonte única de conteúdo institucional do site.
+ * Conteúdo padrão do site e formato dos dados editáveis no painel /admins.
  *
  * Regras de preenchimento:
  * - Só publique dados confirmados pela igreja.
- * - Eventos, mensagens e destaques começam vazios de propósito: as seções
- *   correspondentes só aparecem quando houver conteúdo real.
+ * - Agenda, mensagens e destaques começam vazios de propósito.
  * - O endereço descrito no estatuto é provisório. Só preencha `address`,
  *   `mapEmbedUrl` e `directionsUrl` depois de confirmar o endereço atual.
  */
 
-export const church = {
-  name: "Igreja Assembleia de Deus Renovar",
-  shortName: "Assembleia de Deus Renovar",
-  acronym: "ADR",
-  city: "São José dos Campos",
-  state: "São Paulo",
-  foundedAt: "23 de setembro de 2013",
-  foundedIso: "2013-09-23",
-  legalNature: "Associação sem fins lucrativos",
-  mission:
-    "Proclamar o Evangelho de nosso Senhor e Salvador Jesus Cristo, com a Bíblia como referência de fé e orientação.",
-  welcome:
-    "Uma comunidade cristã dedicada à proclamação do Evangelho de Jesus Cristo, orientada pela Palavra de Deus.",
+export type ChurchInfo = {
+  name: string;
+  shortName: string;
+  acronym: string;
+  city: string;
+  state: string;
+  foundedAt: string;
+  legalNature: string;
+  /** Frase curta de missão exibida no menu mobile. */
+  missionStatement: string;
+  /** Caminho ou URL da logo. */
+  logoUrl: string;
 };
 
-/** Canais oficiais. Deixe vazio o que ainda não foi confirmado. */
-export const contact = {
-  phone: "",
-  whatsapp: "",
-  email: "",
-  address: "",
-  addressComplement: "",
-  /** Link "incorporar mapa" do Google Maps — apenas com endereço confirmado. */
-  mapEmbedUrl: "",
-  /** Link de rota (Google Maps / Waze) — apenas com endereço confirmado. */
-  directionsUrl: "",
+export type HomeCopy = {
+  heroEyebrow: string;
+  heroGreeting: string;
+  heroTitle: string;
+  welcome: string;
+  missionTitle: string;
+  missionLead: string;
+  missionBody: string;
+  inviteTitle: string;
+  inviteDescription: string;
+};
+
+export type AboutCopy = {
+  title: string;
+  description: string;
+  bibleText: string;
+  paragraphs: string[];
+  areasNote: string;
+  contentNote: string;
+  inviteTitle: string;
+  inviteDescription: string;
+};
+
+export type ContactInfo = {
+  phone: string;
+  whatsapp: string;
+  email: string;
+  address: string;
+  addressComplement: string;
+  mapEmbedUrl: string;
+  directionsUrl: string;
+  /** Aviso exibido no bloco "Localização". */
+  locationNote: string;
+  /** Texto exibido no bloco "Visite a igreja". */
+  visitNote: string;
   social: {
-    instagram: "",
-    facebook: "",
-    youtube: "",
-  },
+    instagram: string;
+    facebook: string;
+    youtube: string;
+  };
 };
 
 export type EventItem = {
@@ -61,13 +83,11 @@ export type MessageItem = {
   kind: MessageKind;
   title: string;
   summary: string;
-  /** Corpo opcional, em parágrafos separados por linha em branco. */
   body?: string;
   /** Só preencha se a autoria for informada pela igreja. */
   author?: string;
   /** Data de publicação no formato AAAA-MM-DD */
   publishedAt: string;
-  /** Link de vídeo fornecido pela igreja. */
   videoUrl?: string;
   imageUrl?: string;
 };
@@ -80,54 +100,145 @@ export type Highlight = {
   linkUrl?: string;
 };
 
-export const events: EventItem[] = [];
+export type MinistryArea = {
+  id: string;
+  title: string;
+  description: string;
+};
 
-export const messages: MessageItem[] = [];
+export type SiteContent = {
+  church: ChurchInfo;
+  home: HomeCopy;
+  about: AboutCopy;
+  contact: ContactInfo;
+  ministryAreas: MinistryArea[];
+  events: EventItem[];
+  messages: MessageItem[];
+  highlights: Highlight[];
+};
 
-export const highlights: Highlight[] = [];
-
-export const hasEvents = events.length > 0;
-export const hasMessages = messages.length > 0;
-
-export const hasContactInfo = Boolean(
-  contact.phone ||
-    contact.whatsapp ||
-    contact.email ||
-    contact.address ||
-    contact.social.instagram ||
-    contact.social.facebook ||
-    contact.social.youtube,
-);
-
-export const hasConfirmedAddress = Boolean(
-  contact.address && contact.mapEmbedUrl && contact.directionsUrl,
-);
-
-export const navigation = [
-  { label: "Início", to: "/" },
-  { label: "Sobre a igreja", to: "/sobre" },
-  ...(hasEvents ? [{ label: "Cultos e agenda", to: "/agenda" }] : []),
-  ...(hasMessages ? [{ label: "Mensagens", to: "/mensagens" }] : []),
-  { label: "Contato", to: "/contato" },
-];
-
-export const ministryAreas = [
-  {
-    id: "evangelizacao",
-    title: "Evangelização",
-    description:
-      "Anunciar a mensagem do Evangelho a quem ainda não a conhece, em fidelidade ao chamado de levar Cristo a todas as pessoas.",
+export const defaultContent: SiteContent = {
+  church: {
+    name: "Igreja Assembleia de Deus Renovar",
+    shortName: "Assembleia de Deus Renovar",
+    acronym: "ADR",
+    city: "São José dos Campos",
+    state: "São Paulo",
+    foundedAt: "23 de setembro de 2013",
+    legalNature: "Associação sem fins lucrativos",
+    missionStatement:
+      "Proclamar o Evangelho de nosso Senhor e Salvador Jesus Cristo, com a Bíblia como referência de fé e orientação.",
+    logoUrl: "/logo-adr.png",
   },
-  {
-    id: "educacao-crista",
-    title: "Educação Cristã",
-    description:
-      "Ensino e formação na Palavra de Deus, para que a fé seja compreendida, vivida e compartilhada com clareza.",
+
+  home: {
+    heroEyebrow: "Uma igreja em São José dos Campos",
+    heroGreeting: "Bem-vindo à",
+    heroTitle: "Assembleia de Deus Renovar",
+    welcome:
+      "Uma comunidade cristã dedicada à proclamação do Evangelho de Jesus Cristo, orientada pela Palavra de Deus.",
+    missionTitle: "Proclamar o Evangelho de Jesus Cristo",
+    missionLead:
+      "A razão de existir da Assembleia de Deus Renovar é anunciar a mensagem de nosso Senhor e Salvador Jesus Cristo. Essa missão é vivida com a Bíblia como referência de fé, de ensino e de orientação para a vida cristã.",
+    missionBody:
+      "Como associação sem fins lucrativos, a igreja existe para servir pessoas — acolhendo quem chega, ensinando a Palavra e cuidando da comunidade. O estatuto prevê três áreas de atuação: evangelização, educação cristã e ação social.",
+    inviteTitle: "Venha conhecer a comunidade",
+    inviteDescription:
+      "Se você procura uma igreja para caminhar na fé, ou deseja apenas conversar, será bem-vindo. Os canais oficiais de contato serão publicados assim que forem confirmados pela liderança.",
   },
-  {
-    id: "acao-social",
-    title: "Ação Social",
+
+  about: {
+    title: "Uma igreja que nasceu em São José dos Campos",
     description:
-      "Atenção às necessidades das pessoas e cuidado com a comunidade, como expressão prática do amor cristão.",
+      "Conheça a origem, a missão e os princípios que orientam a Igreja Assembleia de Deus Renovar.",
+    bibleText:
+      "A Escritura orienta a fé, o ensino e a vida da igreja. É dela que vem a mensagem que a Assembleia de Deus Renovar anuncia: a salvação em Jesus Cristo.",
+    paragraphs: [
+      "A Bíblia é a referência de fé e a orientação para tudo o que a igreja ensina e pratica. É a partir dela que buscamos viver o amor a Deus, o cuidado com as pessoas e o compromisso com a verdade.",
+      "A ADR reúne pessoas que compartilham a mesma esperança em Cristo. Este site existe para apresentar a igreja com clareza e para abrir um caminho de contato com quem deseja conhecê-la.",
+    ],
+    areasNote:
+      "Informações sobre ações em andamento, encontros e projetos serão publicadas pela liderança quando confirmadas. Até lá, nenhuma atividade é apresentada como existente.",
+    contentNote:
+      "O conteúdo institucional desta página foi elaborado a partir do estatuto da igreja, que orienta a apresentação sem ser reproduzido na íntegra. Dados de contato, programação e projetos aparecem apenas quando confirmados pela liderança.",
+    inviteTitle: "Quer conhecer a igreja?",
+    inviteDescription:
+      "Será uma alegria receber você. Os canais oficiais de contato serão publicados assim que forem confirmados pela liderança.",
   },
-];
+
+  contact: {
+    phone: "",
+    whatsapp: "",
+    email: "",
+    address: "",
+    addressComplement: "",
+    mapEmbedUrl: "",
+    directionsUrl: "",
+    locationNote:
+      "Ainda não publicamos o endereço da igreja. O endereço que consta no estatuto é provisório e não representa o local atual, por isso o mapa e o botão de rota serão adicionados apenas quando a liderança confirmar o endereço.",
+    visitNote:
+      "Se você deseja conhecer a Assembleia de Deus Renovar, acompanhe a publicação dos horários de cultos e dos canais de contato. Será uma alegria receber você.",
+    social: {
+      instagram: "",
+      facebook: "",
+      youtube: "",
+    },
+  },
+
+  ministryAreas: [
+    {
+      id: "evangelizacao",
+      title: "Evangelização",
+      description:
+        "Anunciar a mensagem do Evangelho a quem ainda não a conhece, em fidelidade ao chamado de levar Cristo a todas as pessoas.",
+    },
+    {
+      id: "educacao-crista",
+      title: "Educação Cristã",
+      description:
+        "Ensino e formação na Palavra de Deus, para que a fé seja compreendida, vivida e compartilhada com clareza.",
+    },
+    {
+      id: "acao-social",
+      title: "Ação Social",
+      description:
+        "Atenção às necessidades das pessoas e cuidado com a comunidade, como expressão prática do amor cristão.",
+    },
+  ],
+
+  events: [],
+  messages: [],
+  highlights: [],
+};
+
+export function getNavigation(content: SiteContent) {
+  return [
+    { label: "Início", to: "/" },
+    { label: "Sobre a igreja", to: "/sobre" },
+    ...(content.events.length > 0
+      ? [{ label: "Cultos e agenda", to: "/agenda" }]
+      : []),
+    ...(content.messages.length > 0
+      ? [{ label: "Mensagens", to: "/mensagens" }]
+      : []),
+    { label: "Contato", to: "/contato" },
+  ];
+}
+
+export function hasContactInfo(contact: ContactInfo) {
+  return Boolean(
+    contact.phone ||
+      contact.whatsapp ||
+      contact.email ||
+      contact.address ||
+      contact.social.instagram ||
+      contact.social.facebook ||
+      contact.social.youtube,
+  );
+}
+
+export function hasConfirmedAddress(contact: ContactInfo) {
+  return Boolean(
+    contact.address && contact.mapEmbedUrl && contact.directionsUrl,
+  );
+}

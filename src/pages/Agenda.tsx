@@ -4,14 +4,16 @@ import { ArrowRight, MapPin, Clock } from "lucide-react";
 import { PageHeader } from "@/components/site/PageHeader";
 import { EmptyStateGraphic } from "@/components/brand/Graphics";
 import { Button } from "@/components/ui/button";
-import { events } from "@/content/site";
+import { useSiteContent } from "@/content/ContentProvider";
 import { eventDayMonth, formatLongDate } from "@/lib/format";
 import { usePageTitle } from "@/hooks/use-page-title";
 
-const sortedEvents = [...events].sort((a, b) => a.date.localeCompare(b.date));
-
 const Agenda = () => {
   usePageTitle("Cultos e agenda");
+  const { content } = useSiteContent();
+  const sortedEvents = [...content.events].sort((a, b) =>
+    a.date.localeCompare(b.date),
+  );
 
   return (
     <>

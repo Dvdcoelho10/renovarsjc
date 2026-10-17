@@ -3,7 +3,8 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { Menu, ArrowUpRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { navigation, church } from "@/content/site";
+import { getNavigation } from "@/content/site";
+import { useSiteContent } from "@/content/ContentProvider";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,9 @@ import {
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const { content } = useSiteContent();
+  const navigation = getNavigation(content);
+  const { church } = content;
 
   useEffect(() => {
     setOpen(false);
@@ -127,7 +131,7 @@ export function SiteHeader() {
 
             <div className="border-t border-border bg-secondary/50 px-6 py-6">
               <p className="text-sm leading-relaxed text-muted-foreground">
-                {church.mission}
+                {church.missionStatement}
               </p>
               <Button asChild className="mt-4 h-11 w-full rounded-full">
                 <Link to="/contato" onClick={() => setOpen(false)}>

@@ -6,17 +6,19 @@ import { EmblemPanel, BibleFlame } from "@/components/brand/Graphics";
 import { SectionHeading } from "@/components/site/SectionHeading";
 import { AreasGrid } from "@/components/site/AreasGrid";
 import { InvitePanel } from "@/components/site/InvitePanel";
-import { church, highlights } from "@/content/site";
+import { useSiteContent } from "@/content/ContentProvider";
 import { usePageTitle } from "@/hooks/use-page-title";
-
-const facts = [
-  { label: "Fundação", value: church.foundedAt },
-  { label: "Origem", value: `${church.city} · ${church.state}` },
-  { label: "Natureza", value: church.legalNature },
-];
 
 const Index = () => {
   usePageTitle();
+  const { content } = useSiteContent();
+  const { church, home, highlights } = content;
+
+  const facts = [
+    { label: "Fundação", value: church.foundedAt },
+    { label: "Origem", value: `${church.city} · ${church.state}` },
+    { label: "Natureza", value: church.legalNature },
+  ];
 
   return (
     <>
@@ -38,22 +40,22 @@ const Index = () => {
               style={{ animationDelay: "40ms" }}
             >
               <span aria-hidden="true" className="h-[2px] w-7 rounded-full bg-accent" />
-              Uma igreja em {church.city}
+              {home.heroEyebrow}
             </p>
 
             <h1
               className="animate-rise mt-5 text-[2.4rem] leading-[1.05] tracking-tight sm:text-6xl lg:text-[3.6rem]"
               style={{ animationDelay: "120ms" }}
             >
-              Bem-vindo à
-              <span className="block text-primary">Assembleia de Deus Renovar</span>
+              {home.heroGreeting}
+              <span className="block text-primary">{home.heroTitle}</span>
             </h1>
 
             <p
               className="animate-rise mt-6 max-w-xl text-[1.08rem] leading-relaxed text-muted-foreground sm:text-lg"
               style={{ animationDelay: "200ms" }}
             >
-              {church.welcome}
+              {home.welcome}
             </p>
 
             <div
@@ -118,14 +120,11 @@ const Index = () => {
           <div>
             <SectionHeading
               eyebrow="Nossa missão"
-              title="Proclamar o Evangelho de Jesus Cristo"
-              description="A razão de existir da Assembleia de Deus Renovar é anunciar a mensagem de nosso Senhor e Salvador Jesus Cristo. Essa missão é vivida com a Bíblia como referência de fé, de ensino e de orientação para a vida cristã."
+              title={home.missionTitle}
+              description={home.missionLead}
             />
             <p className="mt-5 max-w-2xl text-[1.02rem] leading-relaxed text-muted-foreground">
-              Como associação sem fins lucrativos, a igreja existe para servir
-              pessoas — acolhendo quem chega, ensinando a Palavra e cuidando da
-              comunidade. O estatuto prevê três áreas de atuação: evangelização,
-              educação cristã e ação social.
+              {home.missionBody}
             </p>
             <Link
               to="/sobre"
@@ -200,7 +199,7 @@ const Index = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {highlight.linkLabel ?? "Saiba mais"}
+                      {highlight.linkLabel || "Saiba mais"}
                       <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                     </a>
                   )}
@@ -213,8 +212,8 @@ const Index = () => {
 
       {/* Convite */}
       <InvitePanel
-        title="Venha conhecer a comunidade"
-        description="Se você procura uma igreja para caminhar na fé, ou deseja apenas conversar, será bem-vindo. Os canais oficiais de contato serão publicados assim que forem confirmados pela liderança."
+        title={home.inviteTitle}
+        description={home.inviteDescription}
         primaryLabel="Ver canais de contato"
         primaryTo="/contato"
         secondaryLabel="Conheça a igreja"

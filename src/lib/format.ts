@@ -1,20 +1,36 @@
-import { format, parseISO } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+function safeDate(iso: string) {
+  if (!iso) return null;
+  const date = parseISO(iso);
+  return isValid(date) ? date : null;
+}
+
 export function formatLongDate(iso: string) {
-  return format(parseISO(iso), "d 'de' MMMM 'de' yyyy", { locale: ptBR });
+  const date = safeDate(iso);
+  if (!date) return "";
+  return format(date, "d 'de' MMMM 'de' yyyy", { locale: ptBR });
 }
 
 export function formatShortDate(iso: string) {
-  return format(parseISO(iso), "d MMM yyyy", { locale: ptBR });
+  const date = safeDate(iso);
+  if (!date) return "Data a definir";
+  return format(date, "d MMM yyyy", { locale: ptBR });
 }
 
 export function formatMonthYear(iso: string) {
-  return format(parseISO(iso), "MMMM 'de' yyyy", { locale: ptBR });
+  const date = safeDate(iso);
+  if (!date) return "";
+  return format(date, "MMMM 'de' yyyy", { locale: ptBR });
 }
 
 export function eventDayMonth(iso: string) {
-  const date = parseISO(iso);
+  const date = safeDate(iso);
+  if (!date) {
+    return { day: "--", month: "", weekday: "" };
+  }
+
   return {
     day: format(date, "dd"),
     month: format(date, "MMM", { locale: ptBR }).replace(".", "").toUpperCase(),
@@ -22,7 +38,7 @@ export function eventDayMonth(iso: string) {
   };
 }
 
-/** Texto curto de endereço para links de contato (sem publicar dados fictícios). */
+/** Link de ligação a partir do telefone informado. */
 export function phoneHref(value: string) {
   return `tel:+${value.replace(/\D/g, "")}`;
 }

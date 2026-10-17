@@ -20,9 +20,16 @@ Available packages and libraries:
 
 # Conteúdo institucional (Igreja Assembleia de Deus Renovar)
 
-- Todo conteúdo factual (igreja, contato, agenda, mensagens, destaques) vive em `src/content/site.ts`. Edite lá, nunca duplique textos nas páginas.
+- O conteúdo padrão vive em `src/content/site.ts` e é servido/editado via `src/content/ContentProvider.tsx`. Páginas leem com `useSiteContent()`, nunca com textos duplicados.
 - Nunca inventar pastores, liderança, horários de cultos, telefones, redes sociais, CNPJ, número de membros, testemunhos ou resultados de ações sociais.
-- O endereço do estatuto é provisório: não publicar mapas nem rotas sem confirmação (`hasConfirmedAddress` só ativa com endereço + mapa + rota preenchidos).
+- O endereço do estatuto é provisório: não publicar mapas nem rotas sem confirmação (`hasConfirmedAddress` exige endereço + mapa + rota).
 - Agenda, Mensagens e Destaques só aparecem com conteúdo real. As rotas existem, mas devem mostrar estados vazios honestos.
 - Áreas do estatuto (Evangelização, Educação Cristã, Ação Social) são *previstas*, não atividades confirmadas — manter o aviso nas seções.
 - O estatuto não é publicado nem disponibilizado para download no site.
+
+# Painel administrativo (/admins)
+
+- Rota `/admins`, fora do menu público. Login em `src/lib/admin-auth.ts` (credenciais definidas pela igreja) e sessão em `sessionStorage`.
+- O painel edita: dados da igreja, textos do Início e Sobre, áreas, contato/redes/endereço, destaques, agenda e mensagens (com imagens por URL).
+- Não há servidor/banco conectado: a persistência é `localStorage`. Não prometer publicação para todos os visitantes até conectar um banco e mover autenticação + conteúdo para o servidor.
+- `<input type=file>`/upload de imagem não existe: imagens são informadas por URL.

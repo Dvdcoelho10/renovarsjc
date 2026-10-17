@@ -5,7 +5,8 @@ import { ArrowUpRight, Play } from "lucide-react";
 import { PageHeader } from "@/components/site/PageHeader";
 import { EmptyStateGraphic } from "@/components/brand/Graphics";
 import { Button } from "@/components/ui/button";
-import { messages, type MessageKind } from "@/content/site";
+import { useSiteContent } from "@/content/ContentProvider";
+import type { MessageKind } from "@/content/site";
 import { formatShortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -25,13 +26,13 @@ const filters: { label: string; value: Filter }[] = [
   { label: "Vídeos", value: "video" },
 ];
 
-const sortedMessages = [...messages].sort((a, b) =>
-  b.publishedAt.localeCompare(a.publishedAt),
-);
-
 const Mensagens = () => {
   usePageTitle("Mensagens");
   const [filter, setFilter] = useState<Filter>("todas");
+  const { content } = useSiteContent();
+  const sortedMessages = [...content.messages].sort((a, b) =>
+    b.publishedAt.localeCompare(a.publishedAt),
+  );
 
   const visible =
     filter === "todas"
@@ -123,7 +124,7 @@ const Mensagens = () => {
 
                     <div className="mt-5 flex items-center justify-between gap-4 border-t border-border/70 pt-4">
                       <span className="text-sm text-muted-foreground">
-                        {message.author ?? "Publicado pela igreja"}
+                        {message.author || "Publicado pela igreja"}
                       </span>
                       {message.videoUrl && (
                         <a

@@ -1,10 +1,14 @@
 import { Link } from "react-router-dom";
 
 import { Logo } from "@/components/brand/Logo";
-import { church, navigation } from "@/content/site";
+import { getNavigation } from "@/content/site";
+import { useSiteContent } from "@/content/ContentProvider";
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
+  const { content } = useSiteContent();
+  const navigation = getNavigation(content);
+  const { church, home } = content;
 
   return (
     <footer className="mt-24 bg-primary text-primary-foreground">
@@ -13,7 +17,7 @@ export function SiteFooter() {
           <div>
             <Logo variant="dark" />
             <p className="mt-6 max-w-sm text-sm leading-relaxed text-primary-foreground/75">
-              {church.welcome}
+              {home.welcome}
             </p>
           </div>
 

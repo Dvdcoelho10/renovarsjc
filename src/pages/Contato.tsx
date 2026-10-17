@@ -13,7 +13,12 @@ import {
 
 import { PageHeader } from "@/components/site/PageHeader";
 import { Button } from "@/components/ui/button";
-import { contact, hasConfirmedAddress, hasContactInfo } from "@/content/site";
+import { useSiteContent } from "@/content/ContentProvider";
+import {
+  hasConfirmedAddress,
+  hasContactInfo,
+  type ContactInfo,
+} from "@/content/site";
 import { phoneHref, whatsappHref } from "@/lib/format";
 import { usePageTitle } from "@/hooks/use-page-title";
 
@@ -25,7 +30,7 @@ type Channel = {
   icon: LucideIcon;
 };
 
-function buildChannels(): Channel[] {
+function buildChannels(contact: ContactInfo): Channel[] {
   const channels: Channel[] = [];
 
   if (contact.phone) {
@@ -57,7 +62,7 @@ function buildChannels(): Channel[] {
   return channels;
 }
 
-function buildSocials(): Channel[] {
+function buildSocials(contact: ContactInfo): Channel[] {
   const socials: Channel[] = [];
 
   if (contact.social.instagram) {
@@ -93,9 +98,11 @@ function buildSocials(): Channel[] {
 
 const Contato = () => {
   usePageTitle("Contato e localização");
+  const { content } = useSiteContent();
+  const { contact } = content;
 
-  const channels = buildChannels();
-  const socials = buildSocials();
+  const channels = buildChannels(contact);
+  const socials = buildSocials(contact);
 
   return (
     <>
@@ -108,7 +115,7 @@ const Contato = () => {
       <section className="container py-16 sm:py-20">
         <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
           <div>
-            {hasContactInfo ? (
+            {hasContactInfo(contact) ? (
               <div className="space-y-8">
                 {channels.length > 0 && (
                   <div>
@@ -194,7 +201,7 @@ const Contato = () => {
                         </div>
                       </div>
 
-                      {hasConfirmedAddress && (
+                      {hasConfirmedAddress(contact) && (
                         <div className="mt-6 space-y-4">
                           <iframe
                             title="Mapa com a localização da igreja"
@@ -262,10 +269,7 @@ const Contato = () => {
                 <div>
                   <h2 className="text-lg">Localização</h2>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    Ainda não publicamos o endereço da igreja. O endereço que
-                    consta no estatuto é provisório e não representa o local
-                    atual, por isso o mapa e o botão de rota serão adicionados
-                    apenas quando a liderança confirmar o endereço.
+                    {contact.locationNote}
                   </p>
                 </div>
               </div>
@@ -274,9 +278,7 @@ const Contato = () => {
             <div className="rounded-[1.5rem] border border-border/80 bg-card p-6">
               <h2 className="text-lg">Visite a igreja</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Se você deseja conhecer a Assembleia de Deus Renovar, acompanhe a
-                publicação dos horários de cultos e dos canais de contato. Será
-                uma alegria receber você.
+                {contact.visitNote}
               </p>
               <Link
                 to="/sobre"

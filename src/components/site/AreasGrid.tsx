@@ -1,6 +1,6 @@
 import { BookOpen, Flame, HeartHandshake } from "lucide-react";
 
-import { ministryAreas } from "@/content/site";
+import { useSiteContent } from "@/content/ContentProvider";
 
 const icons = {
   evangelizacao: Flame,
@@ -9,9 +9,11 @@ const icons = {
 } as const;
 
 export function AreasGrid() {
+  const { content } = useSiteContent();
+
   return (
     <div className="grid gap-5 md:grid-cols-3">
-      {ministryAreas.map((area, index) => {
+      {content.ministryAreas.map((area, index) => {
         const Icon = icons[area.id as keyof typeof icons] ?? Flame;
 
         return (

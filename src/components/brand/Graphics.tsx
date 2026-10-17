@@ -1,11 +1,15 @@
 import { cn } from "@/lib/utils";
-import { church } from "@/content/site";
+import { useSiteContent } from "@/content/ContentProvider";
 
 /**
  * Composição gráfica discreta usada no destaque da página inicial.
  * Não simula templo, membros ou liderança: usa apenas arcos da identidade.
  */
 export function EmblemPanel({ className }: { className?: string }) {
+  const { content } = useSiteContent();
+  const { church } = content;
+  const logoSrc = church.logoUrl || "/logo-adr.png";
+
   return (
     <div
       className={cn(
@@ -52,7 +56,7 @@ export function EmblemPanel({ className }: { className?: string }) {
       <div className="relative flex h-full flex-col items-center justify-center gap-8 px-8 py-14 sm:py-16">
         <div className="rounded-full bg-white p-2 shadow-[0_24px_50px_-24px_rgba(0,0,0,0.55)] ring-1 ring-white/40 sm:p-3">
           <img
-            src="/logo-adr.png"
+            src={logoSrc}
             alt={`Emblema da ${church.shortName}: pomba, chamas e pessoas`}
             className="h-36 w-36 object-contain sm:h-44 sm:w-44"
             decoding="async"
