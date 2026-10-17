@@ -49,6 +49,14 @@ const tabLabels = {
   mensagens: "Mensagens",
 } as const;
 
+const sitePages = [
+  { label: "Início", to: "/" },
+  { label: "Sobre", to: "/sobre" },
+  { label: "Agenda", to: "/agenda" },
+  { label: "Mensagens", to: "/mensagens" },
+  { label: "Contato", to: "/contato" },
+] as const;
+
 type TabValue = keyof typeof tabLabels;
 
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
@@ -234,6 +242,28 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             seja conectado. Use <strong className="font-medium text-foreground">Exportar</strong>{" "}
             para guardar uma cópia do conteúdo.
           </p>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-border/80 bg-card p-4">
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Editar na própria página
+          </p>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+            Abra a página do site e use a barra “Modo administrador” na parte de
+            baixo para editar textos, imagens e links.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {sitePages.map((page) => (
+              <Link
+                key={page.to}
+                to={page.to}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary"
+              >
+                {page.label}
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              </Link>
+            ))}
+          </div>
         </div>
 
         <Tabs
