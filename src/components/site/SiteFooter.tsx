@@ -66,7 +66,7 @@ export function SiteFooter() {
           <p>
             © {year} {church.name} — {church.acronym}. Todos os direitos reservados.
           </p>
-          <p>Conteúdo institucional elaborado a partir do estatuto da igreja.</p>
+          <p>Desenvolvido por Nusaas</p>
         </div>
       </div>
     </footer>

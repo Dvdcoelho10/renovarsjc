@@ -39,3 +39,5 @@ Available packages and libraries:
 
 - `npm run build` gera `dist/`; `npm start` (`node server.mjs`) serve o build e `/api/youtube/latest`. Requer runtime Node.js (Hostinger VPS/Cloud). Hospedagem apenas estática/PHP não executa a API.
 - Segredos somente em `.env` (ignorado pelo git) ou nas variáveis de ambiente da Hostinger. Nunca usar prefixo `VITE_` em segredos — esse prefixo injeta o valor no bundle do cliente.
+- Toda configuração/credencial de banco de dados (ex.: `DATABASE_URL`) fica exclusivamente no `.env` ou nas variáveis da Hostinger e é lida apenas por código de servidor. Nunca em `src/`, nunca no cliente e nunca com prefixo `VITE_`.
+- Rodapé: crédito "Desenvolvido por Nusaas" (substituiu a nota sobre o estatuto).
