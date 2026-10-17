@@ -16,6 +16,24 @@ const SESSION_KEY = "adr-admin-session-v1";
 const HINT_KEY = "adr-admin-hint-v1";
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
 
+function localExpiry() {
+  try {
+    const value = Number(window.localStorage.getItem(SESSION_KEY));
+    return Number.isFinite(value) ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function sessionExpiry() {
+  try {
+    const value = Number(window.sessionStorage.getItem(SESSION_KEY));
+    return Number.isFinite(value) ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export function authenticateAdmin(email: string, password: string) {
   const matches =
     email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD;
@@ -23,11 +41,16 @@ export function authenticateAdmin(email: string, password: string) {
   if (matches) {
     const expiresAt = String(Date.now() + SESSION_DURATION_MS);
     try {
-      window.sessionStorage.setItem(SESSION_KEY, expiresAt);
-      // Aviso visual entre abas: mostra o atalho de edição no site.
+      // A sessão fica no localStorage para valer em todas as abas do site.
+      window.localStorage.setItem(SESSION_KEY, expiresAt);
       window.localStorage.setItem(HINT_KEY, expiresAt);
     } catch {
-      // Sem armazenamento, a sessão vale apenas enquanto a página estiver aberta.
+      // Sem localStorage, tenta a sessão da aba.
+    }
+    try {
+      window.sessionStorage.setItem(SESSION_KEY, expiresAt);
+    } catch {
+      // Sem sessionStorage, a sessão vale apenas nesta página.
     }
   }
 
@@ -35,23 +58,37 @@ export function authenticateAdmin(email: string, password: string) {
 }
 
 export function hasAdminSession() {
-  try {
-    const expiresAt = Number(window.sessionStorage.getItem(SESSION_KEY));
-    if (!expiresAt || Number.isNaN(expiresAt)) return false;
-    if (expiresAt < Date.now()) {
-      window.sessionStorage.removeItem(SESSION_KEY);
-      return false;
+  if (localExpiry() > Date.now()) return true;
+
+  const fromSession = sessionExpiry();
+  if (fromSession > Date.now()) {
+    // Sessões antigas (só da aba) passam a valer para o navegador inteiro.
+    try {
+      const expiresAt = String(fromSession);
+      window.localStorage.setItem(SESSION_KEY, expiresAt);
+      window.localStorage.setItem(HINT_KEY, expiresAt);
+    } catch {
+      // Sem localStorage, a sessão continua valendo nesta aba.
     }
     return true;
-  } catch {
-    return false;
   }
+
+  try {
+    window.localStorage.removeItem(SESSION_KEY);
+    window.localStorage.removeItem(HINT_KEY);
+    window.sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    // Ignora falhas de armazenamento.
+  }
+
+  return false;
 }
 
 export function endAdminSession() {
   try {
-    window.sessionStorage.removeItem(SESSION_KEY);
+    window.localStorage.removeItem(SESSION_KEY);
     window.localStorage.removeItem(HINT_KEY);
+    window.sessionStorage.removeItem(SESSION_KEY);
   } catch {
     // Ignora falhas de armazenamento.
   }

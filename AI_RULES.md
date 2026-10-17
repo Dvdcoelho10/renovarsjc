@@ -29,7 +29,7 @@ Available packages and libraries:
 
 # Painel administrativo (/admins)
 
-- Rota `/admins`, fora do menu público. Login em `src/lib/admin-auth.ts` (credenciais definidas pela igreja) e sessão em `sessionStorage`.
+- Rota `/admins`, fora do menu público. Login em `src/lib/admin-auth.ts` (credenciais definidas pela igreja); a sessão fica no `localStorage` (com fallback em `sessionStorage`) para valer em todas as abas por 8 horas.
 - Edição na própria página: `PageEditor` (montado no `SiteLayout`) mostra “Editar esta página” para quem tem sessão/hint de admin e abre um painel com os textos, imagens, listas e links da página atual. Salva pelo `ContentProvider`; os campos compartilhados ficam em `src/components/admin/copy-fields.tsx`. Cabeçalhos de Agenda, Mensagens e Contato ficam em `content.pages`; o Sobre usa `about.eyebrow`.
 - O painel edita: dados da igreja, textos do Início e Sobre, áreas, contato/redes/endereço, destaques, agenda, mensagens, imagens (logo, fotos por página, eventos e mensagens) e o vídeo do YouTube.
 - Imagens: `ImageField` aceita upload do computador (otimizado para WebP via `src/lib/image.ts` e salvo como data URL) ou URL. O mesmo campo troca e remove.

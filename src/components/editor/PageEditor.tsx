@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useLocation } from "react-router-dom";
-import { PencilLine, RotateCcw, Save } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { LogOut, PencilLine, RotateCcw, Save, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/sheet";
 import { normalizeContent, useSiteContent } from "@/content/ContentProvider";
 import type { SiteContent } from "@/content/site";
-import { hasEditorHint } from "@/lib/admin-auth";
+import { endAdminSession, hasEditorHint } from "@/lib/admin-auth";
 
 const pageByPath: Record<string, EditablePage> = {
   "/": "home",
@@ -38,9 +38,27 @@ const pageLabels: Record<EditablePage, string> = {
 export function PageEditor() {
   const { pathname } = useLocation();
   const { content, save } = useSiteContent();
-  const [isAdmin] = useState(() => hasEditorHint());
+  const [isAdmin, setIsAdmin] = useState(() => hasEditorHint());
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<SiteContent>(content);
+
+  useEffect(() => {
+    const syncSession = () => {
+      const active = hasEditorHint();
+      setIsAdmin(active);
+      if (!active) setOpen(false);
+    };
+
+    window.addEventListener("focus", syncSession);
+    window.addEventListener("storage", syncSession);
+    document.addEventListener("visibilitychange", syncSession);
+
+    return () => {
+      window.removeEventListener("focus", syncSession);
+      window.removeEventListener("storage", syncSession);
+      document.removeEventListener("visibilitychange", syncSession);
+    };
+  }, []);
 
   if (!isAdmin) return null;
 
@@ -51,6 +69,13 @@ export function PageEditor() {
   const openEditor = () => {
     setDraft(normalizeContent(content));
     setOpen(true);
+  };
+
+  const handleExit = () => {
+    endAdminSession();
+    setOpen(false);
+    setIsAdmin(false);
+    toast.success("Modo administrador encerrado.");
   };
 
   const handleSave = () => {
@@ -81,14 +106,40 @@ export function PageEditor() {
 
   return (
     <>
-      <Button
-        type="button"
-        onClick={openEditor}
-        className="fixed bottom-5 right-4 z-40 h-11 rounded-full px-5 shadow-[0_18px_40px_-18px_rgba(0,0,0,0.55)] sm:bottom-6 sm:right-6"
-      >
-        <PencilLine className="mr-2 h-4 w-4" aria-hidden="true" />
-        Editar esta página
-      </Button>
+      <div className="fixed inset-x-3 bottom-3 z-40 mx-auto flex w-fit max-w-full items-center gap-1.5 rounded-full border border-primary-foreground/15 bg-primary px-2.5 py-2 text-primary-foreground shadow-[0_22px_50px_-20px_rgba(0,0,0,0.7)] sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:gap-2.5 sm:px-3.5">
+        <span className="hidden items-center gap-2 pl-1 pr-1 text-xs font-medium sm:flex">
+          <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+          Modo administrador · {pageLabels[page]}
+        </span>
+
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={openEditor}
+          className="h-8 rounded-full px-3 text-xs font-semibold"
+        >
+          <PencilLine className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+          Editar página
+        </Button>
+
+        <Link
+          to="/admins"
+          className="rounded-full px-2.5 py-1.5 text-xs font-medium text-primary-foreground/90 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground"
+        >
+          Painel
+        </Link>
+
+        <button
+          type="button"
+          onClick={handleExit}
+          aria-label="Sair do modo administrador"
+          title="Sair do modo administrador"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-primary-foreground/80 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground"
+        >
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
