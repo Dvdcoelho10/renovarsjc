@@ -34,7 +34,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { normalizeContent, useSiteContent } from "@/content/ContentProvider";
-import { defaultContent, type SiteContent } from "@/content/site";
+import {
+  defaultContent,
+  getYoutubeChannelId,
+  getYoutubeVideoId,
+  type SiteContent,
+} from "@/content/site";
 import { endAdminSession, hasAdminSession } from "@/lib/admin-auth";
 import { usePageTitle } from "@/hooks/use-page-title";
 
@@ -74,6 +79,20 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     if (draft.highlights.some((highlight) => !highlight.title.trim())) {
       setTab("destaques");
       toast.error("Preencha o título de todos os destaques antes de salvar.");
+      return;
+    }
+
+    const youtubeInput =
+      draft.youtube.channel.trim() || draft.youtube.videoUrl.trim();
+    const youtubeReady =
+      Boolean(getYoutubeVideoId(draft.youtube.videoUrl)) ||
+      Boolean(getYoutubeChannelId(draft.youtube.channel));
+
+    if (youtubeInput && !youtubeReady) {
+      setTab("youtube");
+      toast.error(
+        "A transmissão não seria exibida: use o ID do canal (UC...) ou o link de um vídeo/live.",
+      );
       return;
     }
 
