@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
   getYoutubeChannelId,
-  getYoutubeVideoId,
   type SiteContent,
   type YoutubeCopy,
 } from "@/content/site";
-import { fetchYoutubeLiveState, type YoutubeLiveState } from "@/lib/youtube";
+import { formatLongDate } from "@/lib/format";
+import { fetchLatestVideo, type YoutubeLatestState } from "@/lib/youtube";
 
 type Props = {
   content: SiteContent;
@@ -18,15 +18,15 @@ type Props = {
 };
 
 const statusText = {
-  loading: "Verificando o canal...",
-  live: "Transmissão ao vivo encontrada",
-  offline: "Nenhuma transmissão ao vivo neste momento",
+  loading: "Consultando o canal...",
+  ready: "Último vídeo encontrado",
+  empty: "Nenhum vídeo publicado no canal",
   error: "Não foi possível consultar a API do YouTube",
 } as const;
 
 export function YoutubeForm({ content, onChange }: Props) {
   const youtube = content.youtube;
-  const [state, setState] = useState<YoutubeLiveState | null>(null);
+  const [state, setState] = useState<YoutubeLatestState | null>(null);
   const [checking, setChecking] = useState(false);
 
   const patch = <K extends keyof YoutubeCopy>(key: K, value: YoutubeCopy[K]) =>
@@ -34,14 +34,14 @@ export function YoutubeForm({ content, onChange }: Props) {
 
   const check = async () => {
     setChecking(true);
-    const next = await fetchYoutubeLiveState(youtube, { force: true });
+    const next = await fetchLatestVideo(youtube, { force: true });
     setState(next);
     setChecking(false);
   };
 
   useEffect(() => {
     let cancelled = false;
-    void fetchYoutubeLiveState(youtube, { force: true }).then((next) => {
+    void fetchLatestVideo(youtube, { force: true }).then((next) => {
       if (!cancelled) setState(next);
     });
     return () => {
@@ -51,19 +51,17 @@ export function YoutubeForm({ content, onChange }: Props) {
   }, []);
 
   const channelId = getYoutubeChannelId(youtube.channel);
-  const videoId = getYoutubeVideoId(youtube.videoUrl);
-  const liveId = state?.status === "live" ? state.videoId : undefined;
 
   return (
     <div className="grid gap-5">
       <AdminSection
-        title="Transmissão do canal"
-        description="A seção fica na página inicial e verifica automaticamente se o canal está ao vivo."
+        title="Último vídeo do canal"
+        description="A seção da página inicial mostra sempre o vídeo mais recente publicado no canal. Quando sai um vídeo novo, ele substitui o anterior automaticamente."
       >
         <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/70 bg-background/40 p-4">
           <div>
             <p className="text-sm font-medium text-foreground">
-              Exibir transmissão no site
+              Exibir o último vídeo no site
             </p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               Desligue para ocultar a seção sem apagar a configuração.
@@ -72,7 +70,7 @@ export function YoutubeForm({ content, onChange }: Props) {
           <Switch
             checked={youtube.enabled}
             onCheckedChange={(checked) => patch("enabled", checked)}
-            aria-label="Exibir transmissão no site"
+            aria-label="Exibir o último vídeo no site"
           />
         </div>
 
@@ -90,25 +88,7 @@ export function YoutubeForm({ content, onChange }: Props) {
           value={youtube.apiKey}
           onChange={(value) => patch("apiKey", value)}
           placeholder="AIza..."
-          hint="Usada só no navegador para consultar o canal. Restrinja a chave por HTTP referrer no Google Cloud para evitar uso indevido."
-        />
-        <TextField
-          id="youtube-video"
-          label="Link de uma transmissão específica (opcional)"
-          type="url"
-          value={youtube.videoUrl}
-          onChange={(value) => patch("videoUrl", value)}
-          placeholder="https://www.youtube.com/watch?v=..."
-          hint="Tem prioridade sobre a detecção automática. Aceita watch?v=, youtu.be, /live/ e /embed/."
-        />
-        <TextField
-          id="youtube-channel-url"
-          label="Link público do canal"
-          type="url"
-          value={youtube.channelUrl}
-          onChange={(value) => patch("channelUrl", value)}
-          placeholder="https://www.youtube.com/channel/UC..."
-          hint="Usado nos botões “Abrir no YouTube”."
+          hint="Usada só no navegador para buscar o vídeo mais recente. Restrinja a chave por HTTP referrer no Google Cloud para evitar uso indevido."
         />
         <TextField
           id="youtube-title"
@@ -125,8 +105,8 @@ export function YoutubeForm({ content, onChange }: Props) {
       </AdminSection>
 
       <AdminSection
-        title="Status da transmissão"
-        description="Consulta a API do YouTube com os dados acima. Atualiza sozinha a cada 5 minutos no site."
+        title="Status do canal"
+        description="Consulta a YouTube Data API v3 com os dados acima. No site, a verificação se repete a cada 2 minutos."
       >
         <div className="flex flex-wrap items-center gap-3">
           <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-primary">
@@ -149,19 +129,31 @@ export function YoutubeForm({ content, onChange }: Props) {
           </Button>
         </div>
 
-        {liveId ? (
-          <iframe
-            title="Pré-visualização da transmissão"
-            src={`https://www.youtube.com/embed/${liveId}?rel=0`}
-            className="aspect-video w-full rounded-2xl border border-border"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
+        {state?.status === "ready" ? (
+          <>
+            <div className="rounded-2xl border border-border/70 bg-background/60 p-4">
+              <p className="text-sm font-medium text-foreground">{state.title}</p>
+              {state.publishedAt && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Publicado em {formatLongDate(state.publishedAt)}
+                </p>
+              )}
+            </div>
+            <iframe
+              title="Pré-visualização do último vídeo"
+              src={`https://www.youtube.com/embed/${state.videoId}?rel=0`}
+              className="aspect-video w-full rounded-2xl border border-border"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </>
         ) : (
           <p className="rounded-2xl border border-dashed border-border bg-background/60 p-5 text-sm leading-relaxed text-muted-foreground">
-            {channelId || videoId
-              ? "O player aparece aqui quando o canal estiver ao vivo (ou quando um link de transmissão for salvo)."
-              : "Informe o ID do canal (UC...) ou o link de uma transmissão para ativar o player."}
+            {state?.status === "error"
+              ? "A consulta falhou. Confirme se a YouTube Data API v3 está ativada no Google Cloud e se a chave permite este domínio (restrição por HTTP referrer)."
+              : channelId
+                ? "O player aparece aqui quando houver um vídeo publicado no canal."
+                : "Informe o ID do canal (UC...) para ativar o player."}
           </p>
         )}
       </AdminSection>

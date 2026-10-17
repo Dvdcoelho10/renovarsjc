@@ -37,7 +37,6 @@ import { normalizeContent, useSiteContent } from "@/content/ContentProvider";
 import {
   defaultContent,
   getYoutubeChannelId,
-  getYoutubeVideoId,
   type SiteContent,
 } from "@/content/site";
 import { endAdminSession, hasAdminSession } from "@/lib/admin-auth";
@@ -46,7 +45,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 const tabLabels = {
   geral: "Conteúdo geral",
   imagens: "Imagens",
-  youtube: "Ao vivo",
+  youtube: "YouTube",
   contato: "Contato",
   destaques: "Destaques",
   agenda: "Agenda",
@@ -82,16 +81,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       return;
     }
 
-    const youtubeInput =
-      draft.youtube.channel.trim() || draft.youtube.videoUrl.trim();
     const youtubeReady =
-      Boolean(getYoutubeVideoId(draft.youtube.videoUrl)) ||
-      Boolean(getYoutubeChannelId(draft.youtube.channel));
+      Boolean(getYoutubeChannelId(draft.youtube.channel)) &&
+      Boolean(draft.youtube.apiKey.trim());
 
-    if (draft.youtube.enabled && youtubeInput && !youtubeReady) {
+    if (draft.youtube.enabled && !youtubeReady) {
       setTab("youtube");
       toast.error(
-        "A transmissão não seria exibida: use o ID do canal (UC...) ou o link de um vídeo/live.",
+        "Para exibir o último vídeo, informe o ID do canal (UC...) e a chave da API do YouTube.",
       );
       return;
     }

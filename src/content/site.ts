@@ -63,15 +63,11 @@ export type ImagesCopy = {
 };
 
 export type YoutubeCopy = {
-  /** Exibe a seção de transmissão no site. */
+  /** Exibe a seção do último vídeo no site. */
   enabled: boolean;
   /** ID do canal (começa com "UC") ou link do canal. */
   channel: string;
-  /** Link de uma transmissão específica (tem prioridade sobre o canal). */
-  videoUrl: string;
-  /** Link público do canal, usado no botão "Abrir no YouTube". */
-  channelUrl: string;
-  /** Chave da YouTube Data API v3 usada para detectar a live. */
+  /** Chave da YouTube Data API v3 usada para buscar o último vídeo. */
   apiKey: string;
   title: string;
   description: string;
@@ -255,12 +251,10 @@ export const defaultContent: SiteContent = {
   youtube: {
     enabled: true,
     channel: "UCpnq0C4PXHGSIV2mjNAVrBw",
-    videoUrl: "",
-    channelUrl: "https://www.youtube.com/channel/UCpnq0C4PXHGSIV2mjNAVrBw",
     apiKey: "AIzaSyC4y3jOVmWITC-mAy3UUfhnGZYqdQq2Uu4",
-    title: "Transmissão ao vivo",
+    title: "Assista ao último vídeo",
     description:
-      "Acompanhe os cultos e as transmissões da TV Renovar, o canal oficial da Assembleia de Deus Renovar no YouTube.",
+      "Sempre que a TV Renovar publica um novo vídeo, ele aparece aqui automaticamente. Assista sem sair do site.",
   },
 
   events: [],
@@ -270,29 +264,6 @@ export const defaultContent: SiteContent = {
 
 // A chave da API é pública no bundle do site (uso típico do YouTube Data API
 // no navegador). Restrinja por HTTP referrer no Google Cloud.
-
-/** Extrai o ID de um vídeo do YouTube a partir de links comuns. */
-export function getYoutubeVideoId(value: string) {
-  const input = value.trim();
-  if (!input) return "";
-
-  if (/^[\w-]{11}$/.test(input)) return input;
-
-  const patterns = [
-    /(?:youtube\.com\/watch\?(?:.*&)?v=)([\w-]{11})/,
-    /(?:youtu\.be\/)([\w-]{11})/,
-    /(?:youtube\.com\/live\/)([\w-]{11})/,
-    /(?:youtube\.com\/embed\/)([\w-]{11})/,
-    /(?:youtube\.com\/shorts\/)([\w-]{11})/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = input.match(pattern);
-    if (match) return match[1];
-  }
-
-  return "";
-}
 
 /** Extrai o ID do canal (UC...) a partir do campo informado. */
 export function getYoutubeChannelId(value: string) {

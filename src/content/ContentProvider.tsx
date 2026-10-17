@@ -177,18 +177,26 @@ function normalizeImages(raw: unknown): ImagesCopy {
   };
 }
 
+const legacyYoutubeTitles = ["Transmissão ao vivo", "Último vídeo do canal"];
+const legacyYoutubeDescription =
+  "Acompanhe os cultos e as transmissões da TV Renovar, o canal oficial da Assembleia de Deus Renovar no YouTube.";
+
 function normalizeYoutube(raw: unknown): YoutubeCopy {
   const value = asRecord(raw);
   const base = defaultContent.youtube;
+  const storedTitle = asText(value.title, base.title);
+  const storedDescription = asText(value.description, base.description);
 
   return {
     enabled: typeof value.enabled === "boolean" ? value.enabled : base.enabled,
     channel: asText(value.channel, base.channel).trim() || base.channel,
-    videoUrl: asLink(value.videoUrl, base.videoUrl),
-    channelUrl: asLink(value.channelUrl, base.channelUrl),
-    apiKey: asText(value.apiKey, base.apiKey).trim(),
-    title: asText(value.title, base.title),
-    description: asText(value.description, base.description),
+    apiKey: asText(value.apiKey, base.apiKey).trim() || base.apiKey,
+    // Migração do bloco antigo para o novo texto de "último vídeo".
+    title: legacyYoutubeTitles.includes(storedTitle) ? base.title : storedTitle,
+    description:
+      storedDescription === legacyYoutubeDescription
+        ? base.description
+        : storedDescription,
   };
 }
 

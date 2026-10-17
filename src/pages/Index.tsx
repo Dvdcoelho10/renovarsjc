@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, Bell } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Bell, Play } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { EmblemPanel, BibleFlame } from "@/components/brand/Graphics";
 import { SectionHeading } from "@/components/site/SectionHeading";
 import { AreasGrid } from "@/components/site/AreasGrid";
 import { InvitePanel } from "@/components/site/InvitePanel";
-import { LiveSection } from "@/components/site/LiveSection";
+import { LatestVideoSection } from "@/components/site/LatestVideoSection";
 import { useSiteContent } from "@/content/ContentProvider";
+import { getYoutubeChannelId } from "@/content/site";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const Index = () => {
@@ -78,6 +79,18 @@ const Index = () => {
               </Button>
             </div>
 
+            {youtube.enabled && getYoutubeChannelId(youtube.channel) && (
+              <a
+                href="#ultimo-video"
+                className="animate-rise mt-6 inline-flex items-center gap-2.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                style={{ animationDelay: "340ms" }}
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/15 text-accent-deep">
+                  <Play className="h-3 w-3 fill-current" aria-hidden="true" />
+                </span>
+                Assistir ao último vídeo do canal
+              </a>
+            )}
           </div>
 
           <div
@@ -108,8 +121,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Transmissão ao vivo */}
-      <LiveSection youtube={youtube} />
+      {/* Último vídeo do canal */}
+      <LatestVideoSection youtube={youtube} />
 
       {/* Missão */}
       <section className="container py-20 sm:py-24">
