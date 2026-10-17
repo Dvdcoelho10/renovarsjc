@@ -1,14 +1,10 @@
 import { useEffect, useState } from "react";
-import { RefreshCw, Youtube } from "lucide-react";
+import { RefreshCw, Server, Youtube } from "lucide-react";
 
 import { AdminSection, TextAreaField, TextField } from "@/components/admin/fields";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import {
-  getYoutubeChannelId,
-  type SiteContent,
-  type YoutubeCopy,
-} from "@/content/site";
+import type { SiteContent, YoutubeCopy } from "@/content/site";
 import { formatLongDate } from "@/lib/format";
 import { fetchLatestVideo, type YoutubeLatestState } from "@/lib/youtube";
 
@@ -34,14 +30,14 @@ export function YoutubeForm({ content, onChange }: Props) {
 
   const check = async () => {
     setChecking(true);
-    const next = await fetchLatestVideo(youtube, { force: true });
+    const next = await fetchLatestVideo({ force: true });
     setState(next);
     setChecking(false);
   };
 
   useEffect(() => {
     let cancelled = false;
-    void fetchLatestVideo(youtube, { force: true }).then((next) => {
+    void fetchLatestVideo({ force: true }).then((next) => {
       if (!cancelled) setState(next);
     });
     return () => {
@@ -49,8 +45,6 @@ export function YoutubeForm({ content, onChange }: Props) {
     };
     // Consulta apenas ao abrir a aba.
   }, []);
-
-  const channelId = getYoutubeChannelId(youtube.channel);
 
   return (
     <div className="grid gap-5">
@@ -75,22 +69,6 @@ export function YoutubeForm({ content, onChange }: Props) {
         </div>
 
         <TextField
-          id="youtube-channel"
-          label="Canal do YouTube (ID ou link)"
-          value={youtube.channel}
-          onChange={(value) => patch("channel", value)}
-          placeholder="UCpnq0C4PXHGSIV2mjNAVrBw"
-          hint="Canal oficial configurado: TV Renovar — UCpnq0C4PXHGSIV2mjNAVrBw. O ID começa com “UC” e tem 24 caracteres."
-        />
-        <TextField
-          id="youtube-api-key"
-          label="Chave da API do YouTube"
-          value={youtube.apiKey}
-          onChange={(value) => patch("apiKey", value)}
-          placeholder="AIza..."
-          hint="Usada só no navegador para buscar o vídeo mais recente. Restrinja a chave por HTTP referrer no Google Cloud para evitar uso indevido."
-        />
-        <TextField
           id="youtube-title"
           label="Título do bloco"
           value={youtube.title}
@@ -105,8 +83,37 @@ export function YoutubeForm({ content, onChange }: Props) {
       </AdminSection>
 
       <AdminSection
+        title="Conexão com o YouTube"
+        description="Canal e chave da API ficam no servidor, fora do navegador."
+      >
+        <div className="flex gap-3 rounded-2xl border border-border/70 bg-background/40 p-4">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+            <Server className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <div className="text-sm leading-relaxed text-muted-foreground">
+            <p className="font-medium text-foreground">Variáveis do servidor</p>
+            <p className="mt-1">
+              <code className="rounded bg-secondary px-1.5 py-0.5 text-xs text-primary">
+                YOUTUBE_CHANNEL_ID
+              </code>{" "}
+              e{" "}
+              <code className="rounded bg-secondary px-1.5 py-0.5 text-xs text-primary">
+                YOUTUBE_API_KEY
+              </code>
+              . Em desenvolvimento, defina no arquivo <code>.env</code>; na
+              Hostinger, nas variáveis de ambiente do aplicativo.
+            </p>
+            <p className="mt-2 text-xs">
+              Para trocar o canal ou a chave, ajuste no servidor e reinicie o
+              app. Nada disso é enviado ao navegador do visitante.
+            </p>
+          </div>
+        </div>
+      </AdminSection>
+
+      <AdminSection
         title="Status do canal"
-        description="Consulta a YouTube Data API v3 com os dados acima. No site, a verificação se repete a cada 2 minutos."
+        description="A consulta é feita pelo servidor. No site, a verificação se repete a cada 2 minutos."
       >
         <div className="flex flex-wrap items-center gap-3">
           <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-primary">
@@ -150,10 +157,8 @@ export function YoutubeForm({ content, onChange }: Props) {
         ) : (
           <p className="rounded-2xl border border-dashed border-border bg-background/60 p-5 text-sm leading-relaxed text-muted-foreground">
             {state?.status === "error"
-              ? "A consulta falhou. Confirme se a YouTube Data API v3 está ativada no Google Cloud e se a chave permite este domínio (restrição por HTTP referrer)."
-              : channelId
-                ? "O player aparece aqui quando houver um vídeo publicado no canal."
-                : "Informe o ID do canal (UC...) para ativar o player."}
+              ? "A consulta falhou. Confirme se YOUTUBE_API_KEY e YOUTUBE_CHANNEL_ID estão definidas no servidor (arquivo .env ou variáveis da Hostinger), se a YouTube Data API v3 está ativa e se a chave permite o domínio do site."
+              : "O player aparece aqui quando houver um vídeo publicado no canal."}
           </p>
         )}
       </AdminSection>

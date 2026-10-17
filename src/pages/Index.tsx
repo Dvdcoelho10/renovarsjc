@@ -8,7 +8,6 @@ import { AreasGrid } from "@/components/site/AreasGrid";
 import { InvitePanel } from "@/components/site/InvitePanel";
 import { LatestVideoSection } from "@/components/site/LatestVideoSection";
 import { useSiteContent } from "@/content/ContentProvider";
-import { getYoutubeChannelId } from "@/content/site";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const Index = () => {
@@ -79,7 +78,7 @@ const Index = () => {
               </Button>
             </div>
 
-            {youtube.enabled && getYoutubeChannelId(youtube.channel) && (
+            {youtube.enabled && (
               <a
                 href="#ultimo-video"
                 className="animate-rise mt-6 inline-flex items-center gap-2.5 text-sm font-medium text-primary underline-offset-4 hover:underline"

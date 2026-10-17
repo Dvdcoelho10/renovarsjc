@@ -1,27 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
 
-import type { YoutubeCopy } from "@/content/site";
 import { fetchLatestVideo, type YoutubeLatestState } from "@/lib/youtube";
 
-/** Reconsulta o canal com frequência para pegar vídeos recém-publicados. */
+/** Reconsulta o servidor com frequência para pegar vídeos recém-publicados. */
 const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 
-export function useLatestVideo(youtube: YoutubeCopy) {
+export function useLatestVideo(enabled: boolean) {
   const [state, setState] = useState<YoutubeLatestState>({ status: "loading" });
   const [refreshToken, setRefreshToken] = useState(0);
-  const configKey = `${youtube.channel}|${youtube.apiKey}`;
 
   useEffect(() => {
-    if (!youtube.enabled) return;
+    if (!enabled) return;
 
     let cancelled = false;
-    const config = youtube;
 
-    const load = (
-      options: { force?: boolean; silent?: boolean } = {},
-    ) => {
+    const load = (options: { force?: boolean; silent?: boolean } = {}) => {
       if (!options.silent) setState({ status: "loading" });
-      void fetchLatestVideo(config, { force: options.force }).then((next) => {
+      void fetchLatestVideo({ force: options.force }).then((next) => {
         if (!cancelled) setState(next);
       });
     };
@@ -47,8 +42,7 @@ export function useLatestVideo(youtube: YoutubeCopy) {
       document.removeEventListener("visibilitychange", revalidate);
       window.removeEventListener("online", revalidate);
     };
-    // configKey resume os campos que mudam a consulta.
-  }, [configKey, refreshToken, youtube.enabled]);
+  }, [enabled, refreshToken]);
 
   const refresh = useCallback(() => {
     setRefreshToken((token) => token + 1);

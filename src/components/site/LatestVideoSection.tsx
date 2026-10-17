@@ -1,13 +1,13 @@
 import { RefreshCw, Youtube } from "lucide-react";
 
-import { getYoutubeChannelId, type YoutubeCopy } from "@/content/site";
+import type { YoutubeCopy } from "@/content/site";
 import { useLatestVideo } from "@/hooks/use-latest-video";
 import { formatLongDate } from "@/lib/format";
 
 export function LatestVideoSection({ youtube }: { youtube: YoutubeCopy }) {
-  const { state, refresh } = useLatestVideo(youtube);
+  const { state, refresh } = useLatestVideo(youtube.enabled);
 
-  if (!youtube.enabled || !getYoutubeChannelId(youtube.channel)) return null;
+  if (!youtube.enabled) return null;
 
   return (
     <section id="ultimo-video" className="container scroll-mt-24 py-16 sm:py-20">

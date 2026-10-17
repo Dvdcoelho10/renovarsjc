@@ -34,11 +34,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { normalizeContent, useSiteContent } from "@/content/ContentProvider";
-import {
-  defaultContent,
-  getYoutubeChannelId,
-  type SiteContent,
-} from "@/content/site";
+import { defaultContent, type SiteContent } from "@/content/site";
 import { endAdminSession, hasAdminSession } from "@/lib/admin-auth";
 import { usePageTitle } from "@/hooks/use-page-title";
 
@@ -78,18 +74,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     if (draft.highlights.some((highlight) => !highlight.title.trim())) {
       setTab("destaques");
       toast.error("Preencha o título de todos os destaques antes de salvar.");
-      return;
-    }
-
-    const youtubeReady =
-      Boolean(getYoutubeChannelId(draft.youtube.channel)) &&
-      Boolean(draft.youtube.apiKey.trim());
-
-    if (draft.youtube.enabled && !youtubeReady) {
-      setTab("youtube");
-      toast.error(
-        "Para exibir o último vídeo, informe o ID do canal (UC...) e a chave da API do YouTube.",
-      );
       return;
     }
 

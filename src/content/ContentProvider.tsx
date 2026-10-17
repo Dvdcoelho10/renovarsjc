@@ -189,8 +189,6 @@ function normalizeYoutube(raw: unknown): YoutubeCopy {
 
   return {
     enabled: typeof value.enabled === "boolean" ? value.enabled : base.enabled,
-    channel: asText(value.channel, base.channel).trim() || base.channel,
-    apiKey: asText(value.apiKey, base.apiKey).trim() || base.apiKey,
     // Migração do bloco antigo para o novo texto de "último vídeo".
     title: legacyYoutubeTitles.includes(storedTitle) ? base.title : storedTitle,
     description:

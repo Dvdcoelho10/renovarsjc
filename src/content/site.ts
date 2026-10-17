@@ -65,10 +65,6 @@ export type ImagesCopy = {
 export type YoutubeCopy = {
   /** Exibe a seção do último vídeo no site. */
   enabled: boolean;
-  /** ID do canal (começa com "UC") ou link do canal. */
-  channel: string;
-  /** Chave da YouTube Data API v3 usada para buscar o último vídeo. */
-  apiKey: string;
   title: string;
   description: string;
 };
@@ -246,12 +242,9 @@ export const defaultContent: SiteContent = {
     contactHero: "",
   },
 
-  // Canal oficial: TV Renovar | Assembleia de Deus Renovar.
-  // A chave da API fica no navegador; restrinja por HTTP referrer no Google Cloud.
+  // Canal e chave da YouTube Data API ficam no servidor (.env).
   youtube: {
     enabled: true,
-    channel: "UCpnq0C4PXHGSIV2mjNAVrBw",
-    apiKey: "AIzaSyC4y3jOVmWITC-mAy3UUfhnGZYqdQq2Uu4",
     title: "Assista ao último vídeo",
     description:
       "Sempre que a TV Renovar publica um novo vídeo, ele aparece aqui automaticamente. Assista sem sair do site.",
@@ -261,19 +254,6 @@ export const defaultContent: SiteContent = {
   messages: [],
   highlights: [],
 };
-
-// A chave da API é pública no bundle do site (uso típico do YouTube Data API
-// no navegador). Restrinja por HTTP referrer no Google Cloud.
-
-/** Extrai o ID do canal (UC...) a partir do campo informado. */
-export function getYoutubeChannelId(value: string) {
-  const input = value.trim();
-  if (!input) return "";
-  if (/^UC[\w-]{22}$/.test(input)) return input;
-
-  const match = input.match(/youtube\.com\/channel\/(UC[\w-]{22})/);
-  return match ? match[1] : "";
-}
 
 export function getNavigation(content: SiteContent) {
   return [
