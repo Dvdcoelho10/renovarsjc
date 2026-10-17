@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 
+import { PageEditor } from "@/components/editor/PageEditor";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 
@@ -29,6 +30,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <SiteFooter />
+      <PageEditor />
     </div>
   );
 }

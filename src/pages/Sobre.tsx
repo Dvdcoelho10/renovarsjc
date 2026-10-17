@@ -25,7 +25,7 @@ const Sobre = () => {
   return (
     <>
       <PageHeader
-        eyebrow="Sobre a igreja"
+        eyebrow={about.eyebrow}
         title={about.title}
         description={about.description}
         imageUrl={images.aboutHero}

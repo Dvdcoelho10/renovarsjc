@@ -42,9 +42,9 @@ const Mensagens = () => {
   return (
     <>
       <PageHeader
-        eyebrow="Mensagens e conteúdos"
-        title="Reflexões, estudos e vídeos da igreja"
-        description="Conteúdos publicados pela liderança da Assembleia de Deus Renovar. Nada é publicado sem confirmação da igreja."
+        eyebrow={content.pages.messages.eyebrow}
+        title={content.pages.messages.title}
+        description={content.pages.messages.description}
         imageUrl={content.images.messagesHero}
       />
 

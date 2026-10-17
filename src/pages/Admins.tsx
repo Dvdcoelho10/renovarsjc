@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { ContactForm } from "@/components/admin/ContactForm";
+import { PageHeaderFields } from "@/components/admin/copy-fields";
 import { EventsForm } from "@/components/admin/EventsForm";
 import { GeneralForm } from "@/components/admin/GeneralForm";
 import { HighlightsForm } from "@/components/admin/HighlightsForm";
@@ -263,16 +264,55 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <YoutubeForm content={draft} onChange={setDraft} />
             </TabsContent>
             <TabsContent value="contato" className="mt-0">
-              <ContactForm content={draft} onChange={setDraft} />
+              <div className="grid gap-5">
+                <PageHeaderFields
+                  idPrefix="admin-contact"
+                  sectionTitle="Cabeçalho da página Contato"
+                  value={draft.pages.contact}
+                  onChange={(contact) =>
+                    setDraft({
+                      ...draft,
+                      pages: { ...draft.pages, contact },
+                    })
+                  }
+                />
+                <ContactForm content={draft} onChange={setDraft} />
+              </div>
             </TabsContent>
             <TabsContent value="destaques" className="mt-0">
               <HighlightsForm content={draft} onChange={setDraft} />
             </TabsContent>
             <TabsContent value="agenda" className="mt-0">
-              <EventsForm content={draft} onChange={setDraft} />
+              <div className="grid gap-5">
+                <PageHeaderFields
+                  idPrefix="admin-agenda"
+                  sectionTitle="Cabeçalho da página Agenda"
+                  value={draft.pages.agenda}
+                  onChange={(agenda) =>
+                    setDraft({
+                      ...draft,
+                      pages: { ...draft.pages, agenda },
+                    })
+                  }
+                />
+                <EventsForm content={draft} onChange={setDraft} />
+              </div>
             </TabsContent>
             <TabsContent value="mensagens" className="mt-0">
-              <MessagesForm content={draft} onChange={setDraft} />
+              <div className="grid gap-5">
+                <PageHeaderFields
+                  idPrefix="admin-messages"
+                  sectionTitle="Cabeçalho da página Mensagens"
+                  value={draft.pages.messages}
+                  onChange={(messages) =>
+                    setDraft({
+                      ...draft,
+                      pages: { ...draft.pages, messages },
+                    })
+                  }
+                />
+                <MessagesForm content={draft} onChange={setDraft} />
+              </div>
             </TabsContent>
           </div>
         </Tabs>

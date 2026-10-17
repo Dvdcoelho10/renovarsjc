@@ -34,7 +34,21 @@ export type HomeCopy = {
   inviteDescription: string;
 };
 
+export type PageHeaderCopy = {
+  eyebrow: string;
+  title: string;
+  description: string;
+};
+
+/** Cabeçalhos das páginas internas (Agenda, Mensagens e Contato). */
+export type PagesCopy = {
+  agenda: PageHeaderCopy;
+  messages: PageHeaderCopy;
+  contact: PageHeaderCopy;
+};
+
 export type AboutCopy = {
+  eyebrow: string;
   title: string;
   description: string;
   bibleText: string;
@@ -134,6 +148,7 @@ export type SiteContent = {
   church: ChurchInfo;
   home: HomeCopy;
   about: AboutCopy;
+  pages: PagesCopy;
   contact: ContactInfo;
   images: ImagesCopy;
   youtube: YoutubeCopy;
@@ -174,6 +189,7 @@ export const defaultContent: SiteContent = {
   },
 
   about: {
+    eyebrow: "Sobre a igreja",
     title: "Uma igreja que nasceu em São José dos Campos",
     description:
       "Conheça a origem, a missão e os princípios que orientam a Igreja Assembleia de Deus Renovar.",
@@ -190,6 +206,27 @@ export const defaultContent: SiteContent = {
     inviteTitle: "Quer conhecer a igreja?",
     inviteDescription:
       "Será uma alegria receber você. Os canais oficiais de contato serão publicados assim que forem confirmados pela liderança.",
+  },
+
+  pages: {
+    agenda: {
+      eyebrow: "Cultos e agenda",
+      title: "Nossos encontros e a programação da igreja",
+      description:
+        "Horários de cultos, encontros e eventos serão publicados nesta página pela liderança, com data, horário e local confirmados.",
+    },
+    messages: {
+      eyebrow: "Mensagens e conteúdos",
+      title: "Reflexões, estudos e vídeos da igreja",
+      description:
+        "Conteúdos publicados pela liderança da Assembleia de Deus Renovar. Nada é publicado sem confirmação da igreja.",
+    },
+    contact: {
+      eyebrow: "Contato e localização",
+      title: "Fale com a igreja",
+      description:
+        "Canais oficiais de contato, endereço e informações para visita. Publicamos apenas dados confirmados pela liderança.",
+    },
   },
 
   contact: {

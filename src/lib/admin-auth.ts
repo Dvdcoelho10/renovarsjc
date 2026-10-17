@@ -13,6 +13,7 @@ const ADMIN_EMAIL = "admin@adrenovar.com.br";
 const ADMIN_PASSWORD = "Adrenovar@2026#";
 
 const SESSION_KEY = "adr-admin-session-v1";
+const HINT_KEY = "adr-admin-hint-v1";
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
 
 export function authenticateAdmin(email: string, password: string) {
@@ -20,13 +21,13 @@ export function authenticateAdmin(email: string, password: string) {
     email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD;
 
   if (matches) {
+    const expiresAt = String(Date.now() + SESSION_DURATION_MS);
     try {
-      window.sessionStorage.setItem(
-        SESSION_KEY,
-        String(Date.now() + SESSION_DURATION_MS),
-      );
+      window.sessionStorage.setItem(SESSION_KEY, expiresAt);
+      // Aviso visual entre abas: mostra o atalho de edição no site.
+      window.localStorage.setItem(HINT_KEY, expiresAt);
     } catch {
-      // Sem sessionStorage, a sessão vale apenas enquanto a página estiver aberta.
+      // Sem armazenamento, a sessão vale apenas enquanto a página estiver aberta.
     }
   }
 
@@ -50,8 +51,28 @@ export function hasAdminSession() {
 export function endAdminSession() {
   try {
     window.sessionStorage.removeItem(SESSION_KEY);
+    window.localStorage.removeItem(HINT_KEY);
   } catch {
     // Ignora falhas de armazenamento.
+  }
+}
+
+/**
+ * Indica se o navegador já autenticou o painel recentemente — usado apenas para
+ * exibir os atalhos de edição na própria página. Não libera dados por si só.
+ */
+export function hasEditorHint() {
+  if (hasAdminSession()) return true;
+
+  try {
+    const expiresAt = Number(window.localStorage.getItem(HINT_KEY));
+    if (!expiresAt || Number.isNaN(expiresAt) || expiresAt < Date.now()) {
+      window.localStorage.removeItem(HINT_KEY);
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
   }
 }
 

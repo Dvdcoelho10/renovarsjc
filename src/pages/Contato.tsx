@@ -107,9 +107,9 @@ const Contato = () => {
   return (
     <>
       <PageHeader
-        eyebrow="Contato e localização"
-        title="Fale com a igreja"
-        description="Canais oficiais de contato, endereço e informações para visita. Publicamos apenas dados confirmados pela liderança."
+        eyebrow={content.pages.contact.eyebrow}
+        title={content.pages.contact.title}
+        description={content.pages.contact.description}
         imageUrl={content.images.contactHero}
       />
 

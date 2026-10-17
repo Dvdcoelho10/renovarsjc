@@ -18,9 +18,9 @@ const Agenda = () => {
   return (
     <>
       <PageHeader
-        eyebrow="Cultos e agenda"
-        title="Nossos encontros e a programação da igreja"
-        description="Horários de cultos, encontros e eventos serão publicados nesta página pela liderança, com data, horário e local confirmados."
+        eyebrow={content.pages.agenda.eyebrow}
+        title={content.pages.agenda.title}
+        description={content.pages.agenda.description}
         imageUrl={content.images.agendaHero}
       />
 

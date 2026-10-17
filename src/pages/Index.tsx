@@ -8,7 +8,7 @@ import { AreasGrid } from "@/components/site/AreasGrid";
 import { InvitePanel } from "@/components/site/InvitePanel";
 import { LatestVideoSection } from "@/components/site/LatestVideoSection";
 import { useSiteContent } from "@/content/ContentProvider";
-import { hasAdminSession } from "@/lib/admin-auth";
+import { hasEditorHint } from "@/lib/admin-auth";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const Index = () => {
@@ -99,7 +99,7 @@ const Index = () => {
           >
             <EmblemPanel className="aspect-[4/5]" imageUrl={images.homeHero} />
 
-            {hasAdminSession() && (
+            {hasEditorHint() && (
               <Link
                 to="/admins?tab=imagens#image-homeHero"
                 className="absolute right-3 top-3 z-10 inline-flex items-center gap-2 rounded-full bg-background/95 px-3 py-2 text-xs font-medium text-foreground shadow-lg backdrop-blur transition-colors hover:bg-background"

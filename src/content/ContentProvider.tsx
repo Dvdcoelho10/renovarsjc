@@ -15,6 +15,7 @@ import {
   type Highlight,
   type ImagesCopy,
   type MessageItem,
+  type PageHeaderCopy,
   type SiteContent,
   type YoutubeCopy,
 } from "@/content/site";
@@ -198,11 +199,25 @@ function normalizeYoutube(raw: unknown): YoutubeCopy {
   };
 }
 
+function normalizePageHeader(
+  raw: unknown,
+  base: PageHeaderCopy,
+): PageHeaderCopy {
+  const value = asRecord(raw);
+
+  return {
+    eyebrow: asText(value.eyebrow, base.eyebrow),
+    title: asText(value.title, base.title),
+    description: asText(value.description, base.description),
+  };
+}
+
 export function normalizeContent(raw: unknown): SiteContent {
   const value = asRecord(raw);
   const church = asRecord(value.church);
   const home = asRecord(value.home);
   const about = asRecord(value.about);
+  const pages = asRecord(value.pages);
   const defaults = defaultContent;
 
   const paragraphs = Array.isArray(about.paragraphs)
@@ -253,6 +268,7 @@ export function normalizeContent(raw: unknown): SiteContent {
       ),
     },
     about: {
+      eyebrow: asText(about.eyebrow, defaults.about.eyebrow),
       title: asText(about.title, defaults.about.title),
       description: asText(about.description, defaults.about.description),
       bibleText: asText(about.bibleText, defaults.about.bibleText),
@@ -264,6 +280,11 @@ export function normalizeContent(raw: unknown): SiteContent {
         about.inviteDescription,
         defaults.about.inviteDescription,
       ),
+    },
+    pages: {
+      agenda: normalizePageHeader(pages.agenda, defaults.pages.agenda),
+      messages: normalizePageHeader(pages.messages, defaults.pages.messages),
+      contact: normalizePageHeader(pages.contact, defaults.pages.contact),
     },
     contact: normalizeContact(value.contact),
     images: normalizeImages(value.images),
