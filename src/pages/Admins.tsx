@@ -13,14 +13,9 @@ import { toast } from "sonner";
 
 import { Logo } from "@/components/brand/Logo";
 import { AdminLogin } from "@/components/admin/AdminLogin";
-import { ContactForm } from "@/components/admin/ContactForm";
-import { PageHeaderFields } from "@/components/admin/copy-fields";
-import { EventsForm } from "@/components/admin/EventsForm";
-import { GeneralForm } from "@/components/admin/GeneralForm";
-import { HighlightsForm } from "@/components/admin/HighlightsForm";
-import { ImagesForm } from "@/components/admin/ImagesForm";
-import { MessagesForm } from "@/components/admin/MessagesForm";
+import { IdentityForm } from "@/components/admin/IdentityForm";
 import { YoutubeForm } from "@/components/admin/YoutubeForm";
+import { PageEditorFields } from "@/components/editor/PageEditorFields";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,13 +35,13 @@ import { endAdminSession, hasAdminSession } from "@/lib/admin-auth";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const tabLabels = {
-  geral: "Conteúdo geral",
-  imagens: "Imagens",
-  youtube: "YouTube",
-  contato: "Contato",
-  destaques: "Destaques",
+  inicio: "Início",
+  sobre: "Sobre",
   agenda: "Agenda",
   mensagens: "Mensagens",
+  contato: "Contato",
+  identidade: "Identidade",
+  youtube: "YouTube",
 } as const;
 
 const sitePages = [
@@ -68,25 +63,11 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const requested = new URLSearchParams(window.location.search).get("tab");
     return requested && requested in tabLabels
       ? (requested as TabValue)
-      : "geral";
+      : "inicio";
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(content);
-
-  useEffect(() => {
-    if (tab !== "imagens") return;
-    const target = window.location.hash.replace("#", "");
-    if (!target) return;
-
-    const timer = window.setTimeout(() => {
-      document
-        .getElementById(target)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 150);
-
-    return () => window.clearTimeout(timer);
-  }, [tab]);
 
   const handleSave = () => {
     if (draft.events.some((event) => !event.title.trim() || !event.date)) {
@@ -246,11 +227,11 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
         <div className="mt-5 rounded-2xl border border-border/80 bg-card p-4">
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Editar na própria página
+            Abrir página no site
           </p>
           <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-            Abra a página do site e use a barra “Modo administrador” na parte de
-            baixo para editar textos, imagens e links.
+            Abra a página e use a barra “Modo administrador” na parte de baixo
+            para editar vendo o resultado no lugar.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {sitePages.map((page) => (
@@ -284,65 +265,30 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </TabsList>
 
           <div className="mt-5">
-            <TabsContent value="geral" className="mt-0">
-              <GeneralForm content={draft} onChange={setDraft} />
+            <TabsContent value="inicio" className="mt-0">
+              <PageEditorFields page="home" draft={draft} onChange={setDraft} />
             </TabsContent>
-            <TabsContent value="imagens" className="mt-0">
-              <ImagesForm content={draft} onChange={setDraft} />
+            <TabsContent value="sobre" className="mt-0">
+              <PageEditorFields page="about" draft={draft} onChange={setDraft} />
+            </TabsContent>
+            <TabsContent value="agenda" className="mt-0">
+              <PageEditorFields page="agenda" draft={draft} onChange={setDraft} />
+            </TabsContent>
+            <TabsContent value="mensagens" className="mt-0">
+              <PageEditorFields
+                page="messages"
+                draft={draft}
+                onChange={setDraft}
+              />
+            </TabsContent>
+            <TabsContent value="contato" className="mt-0">
+              <PageEditorFields page="contact" draft={draft} onChange={setDraft} />
+            </TabsContent>
+            <TabsContent value="identidade" className="mt-0">
+              <IdentityForm content={draft} onChange={setDraft} />
             </TabsContent>
             <TabsContent value="youtube" className="mt-0">
               <YoutubeForm content={draft} onChange={setDraft} />
-            </TabsContent>
-            <TabsContent value="contato" className="mt-0">
-              <div className="grid gap-5">
-                <PageHeaderFields
-                  idPrefix="admin-contact"
-                  sectionTitle="Cabeçalho da página Contato"
-                  value={draft.pages.contact}
-                  onChange={(contact) =>
-                    setDraft({
-                      ...draft,
-                      pages: { ...draft.pages, contact },
-                    })
-                  }
-                />
-                <ContactForm content={draft} onChange={setDraft} />
-              </div>
-            </TabsContent>
-            <TabsContent value="destaques" className="mt-0">
-              <HighlightsForm content={draft} onChange={setDraft} />
-            </TabsContent>
-            <TabsContent value="agenda" className="mt-0">
-              <div className="grid gap-5">
-                <PageHeaderFields
-                  idPrefix="admin-agenda"
-                  sectionTitle="Cabeçalho da página Agenda"
-                  value={draft.pages.agenda}
-                  onChange={(agenda) =>
-                    setDraft({
-                      ...draft,
-                      pages: { ...draft.pages, agenda },
-                    })
-                  }
-                />
-                <EventsForm content={draft} onChange={setDraft} />
-              </div>
-            </TabsContent>
-            <TabsContent value="mensagens" className="mt-0">
-              <div className="grid gap-5">
-                <PageHeaderFields
-                  idPrefix="admin-messages"
-                  sectionTitle="Cabeçalho da página Mensagens"
-                  value={draft.pages.messages}
-                  onChange={(messages) =>
-                    setDraft({
-                      ...draft,
-                      pages: { ...draft.pages, messages },
-                    })
-                  }
-                />
-                <MessagesForm content={draft} onChange={setDraft} />
-              </div>
             </TabsContent>
           </div>
         </Tabs>

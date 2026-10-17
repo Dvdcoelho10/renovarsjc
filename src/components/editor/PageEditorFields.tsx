@@ -6,11 +6,10 @@ import {
 } from "@/components/admin/copy-fields";
 import { ContactForm } from "@/components/admin/ContactForm";
 import { EventsForm } from "@/components/admin/EventsForm";
-import { AdminSection, TextAreaField, TextField } from "@/components/admin/fields";
+import { AdminSection } from "@/components/admin/fields";
 import { HighlightsForm } from "@/components/admin/HighlightsForm";
 import { ImageField } from "@/components/admin/ImageField";
 import { MessagesForm } from "@/components/admin/MessagesForm";
-import { Switch } from "@/components/ui/switch";
 import type {
   ImagesCopy,
   PageHeaderCopy,
@@ -63,51 +62,6 @@ export function PageEditorFields({ page, draft, onChange }: Props) {
             value={draft.images.homeMission}
             onChange={(value) => patchImages("homeMission", value)}
             hint="Substitui a ilustração da Bíblia no bloco de missão."
-          />
-        </AdminSection>
-
-        <AdminSection
-          title="Último vídeo do YouTube"
-          description="O vídeo mais recente do canal aparece incorporado nesta página. Canal e chave ficam no servidor."
-        >
-          <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/70 bg-background/40 p-4">
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                Exibir o último vídeo no site
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Desligue para ocultar a seção sem apagar a configuração.
-              </p>
-            </div>
-            <Switch
-              checked={draft.youtube.enabled}
-              onCheckedChange={(enabled) =>
-                onChange({
-                  ...draft,
-                  youtube: { ...draft.youtube, enabled },
-                })
-              }
-              aria-label="Exibir o último vídeo no site"
-            />
-          </div>
-          <TextField
-            id="page-youtube-title"
-            label="Título do bloco"
-            value={draft.youtube.title}
-            onChange={(title) =>
-              onChange({ ...draft, youtube: { ...draft.youtube, title } })
-            }
-          />
-          <TextAreaField
-            id="page-youtube-description"
-            label="Descrição do bloco"
-            value={draft.youtube.description}
-            onChange={(description) =>
-              onChange({
-                ...draft,
-                youtube: { ...draft.youtube, description },
-              })
-            }
           />
         </AdminSection>
 

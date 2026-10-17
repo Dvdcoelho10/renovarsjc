@@ -1,9 +1,6 @@
-import {
-  AboutCopyFields,
-  HomeCopyFields,
-  MinistryAreasFields,
-} from "@/components/admin/copy-fields";
 import { AdminSection, TextField } from "@/components/admin/fields";
+import { ImageArchivePanel } from "@/components/admin/ImageArchivePanel";
+import { ImageField } from "@/components/admin/ImageField";
 import type { SiteContent } from "@/content/site";
 
 type Props = {
@@ -11,7 +8,7 @@ type Props = {
   onChange: (next: SiteContent) => void;
 };
 
-export function GeneralForm({ content, onChange }: Props) {
+export function IdentityForm({ content, onChange }: Props) {
   const patchChurch = <K extends keyof SiteContent["church"]>(
     key: K,
     value: SiteContent["church"][K],
@@ -21,7 +18,7 @@ export function GeneralForm({ content, onChange }: Props) {
     <div className="grid gap-5">
       <AdminSection
         title="Dados da igreja"
-        description="Aparecem no cabeçalho, rodapé, página Sobre e nos títulos do site."
+        description="Aparecem no cabeçalho, rodapé, página Sobre, no cartão do destaque e nos títulos do site."
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
@@ -73,25 +70,23 @@ export function GeneralForm({ content, onChange }: Props) {
             onChange={(value) => patchChurch("missionStatement", value)}
           />
         </div>
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          A logo é editada na aba “Imagens”, junto com as fotos das páginas.
-        </p>
       </AdminSection>
 
-      <HomeCopyFields
-        value={content.home}
-        onChange={(home) => onChange({ ...content, home })}
-      />
+      <AdminSection
+        title="Logo e identidade"
+        description="A mesma logo é usada no cabeçalho, rodapé, favicon e no cartão do destaque da página inicial."
+      >
+        <ImageField
+          id="identity-logo"
+          label="Logo da igreja"
+          value={content.church.logoUrl}
+          onChange={(value) => patchChurch("logoUrl", value)}
+          hint="Prefira PNG ou WebP com fundo transparente ou branco."
+          previewClassName="h-32"
+        />
+      </AdminSection>
 
-      <AboutCopyFields
-        value={content.about}
-        onChange={(about) => onChange({ ...content, about })}
-      />
-
-      <MinistryAreasFields
-        value={content.ministryAreas}
-        onChange={(ministryAreas) => onChange({ ...content, ministryAreas })}
-      />
+      <ImageArchivePanel content={content} />
     </div>
   );
 }
