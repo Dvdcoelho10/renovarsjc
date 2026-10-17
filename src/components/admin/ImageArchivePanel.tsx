@@ -38,6 +38,10 @@ function collectImages(content: SiteContent): DownloadableImage[] {
       name: `mensagem-${index + 1}-${message.title}`,
       url: message.imageUrl ?? "",
     })),
+    ...content.customPages.map((page) => ({
+      name: `pagina-${page.slug}-abertura`,
+      url: page.imageUrl,
+    })),
   ].filter((image) => image.url.trim().length > 0);
 }
 

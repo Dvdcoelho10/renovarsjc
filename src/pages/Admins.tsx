@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { IdentityForm } from "@/components/admin/IdentityForm";
+import { PagesForm } from "@/components/admin/PagesForm";
 import { YoutubeForm } from "@/components/admin/YoutubeForm";
 import { PageEditorFields } from "@/components/editor/PageEditorFields";
 import {
@@ -30,7 +31,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { normalizeContent, useSiteContent } from "@/content/ContentProvider";
-import { defaultContent, type SiteContent } from "@/content/site";
+import {
+  customPagePath,
+  defaultContent,
+  type SiteContent,
+} from "@/content/site";
 import { endAdminSession, hasAdminSession } from "@/lib/admin-auth";
 import { usePageTitle } from "@/hooks/use-page-title";
 
@@ -40,17 +45,18 @@ const tabLabels = {
   agenda: "Agenda",
   mensagens: "Mensagens",
   contato: "Contato",
+  paginas: "Páginas",
   identidade: "Identidade",
   youtube: "YouTube",
 } as const;
 
-const sitePages = [
+const sitePages: { label: string; to: string }[] = [
   { label: "Início", to: "/" },
   { label: "Sobre", to: "/sobre" },
   { label: "Agenda", to: "/agenda" },
   { label: "Mensagens", to: "/mensagens" },
   { label: "Contato", to: "/contato" },
-] as const;
+];
 
 type TabValue = keyof typeof tabLabels;
 
@@ -69,6 +75,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(content);
 
+  const openPages = [
+    ...sitePages,
+    ...draft.customPages.map((page) => ({
+      label: page.menuLabel || page.title,
+      to: customPagePath(page.slug),
+    })),
+  ];
+
   const handleSave = () => {
     if (draft.events.some((event) => !event.title.trim() || !event.date)) {
       setTab("agenda");
@@ -81,7 +95,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       return;
     }
     if (draft.highlights.some((highlight) => !highlight.title.trim())) {
-      setTab("destaques");
+      setTab("inicio");
       toast.error("Preencha o título de todos os destaques antes de salvar.");
       return;
     }
@@ -92,6 +106,19 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
     if (stored) {
       toast.success("Conteúdo salvo neste navegador.");
+    } else {
+      toast.error(
+        "O navegador não tem espaço para salvar. Remova algumas imagens e tente novamente.",
+      );
+    }
+  };
+
+  /** Publica imediatamente uma mudança estrutural (criar/excluir página). */
+  const commitContent = (next: SiteContent) => {
+    const normalized = normalizeContent(next);
+    setDraft(normalized);
+    if (save(normalized)) {
+      toast.success("Menu do site atualizado.");
     } else {
       toast.error(
         "O navegador não tem espaço para salvar. Remova algumas imagens e tente novamente.",
@@ -212,7 +239,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </h1>
           <p className="mt-3 text-[0.98rem] leading-relaxed text-muted-foreground">
             Altere textos, imagens e links das páginas, dos destaques, da agenda
-            e das mensagens. O menu do site se ajusta automaticamente.
+            e das mensagens. Na aba Páginas você cria ou exclui páginas do menu
+            do site. O menu se ajusta automaticamente.
           </p>
         </div>
 
@@ -234,7 +262,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             para editar vendo o resultado no lugar.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {sitePages.map((page) => (
+            {openPages.map((page) => (
               <Link
                 key={page.to}
                 to={page.to}
@@ -283,6 +311,13 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </TabsContent>
             <TabsContent value="contato" className="mt-0">
               <PageEditorFields page="contact" draft={draft} onChange={setDraft} />
+            </TabsContent>
+            <TabsContent value="paginas" className="mt-0">
+              <PagesForm
+                content={draft}
+                onChange={setDraft}
+                onCommit={commitContent}
+              />
             </TabsContent>
             <TabsContent value="identidade" className="mt-0">
               <IdentityForm content={draft} onChange={setDraft} />

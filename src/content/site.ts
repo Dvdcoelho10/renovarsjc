@@ -47,6 +47,30 @@ export type PagesCopy = {
   contact: PageHeaderCopy;
 };
 
+/** Bloco de texto de uma página criada pelo painel. */
+export type CustomPageSection = {
+  id: string;
+  heading: string;
+  body: string;
+};
+
+/**
+ * Página criada pela liderança no painel. Aparece no menu do cabeçalho e
+ * pode ser editada na própria página.
+ */
+export type CustomPage = {
+  id: string;
+  /** Endereço da página: /pagina/{slug}. Definido na criação. */
+  slug: string;
+  /** Texto exibido no menu do cabeçalho. */
+  menuLabel: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  sections: CustomPageSection[];
+};
+
 export type AboutCopy = {
   eyebrow: string;
   title: string;
@@ -156,6 +180,8 @@ export type SiteContent = {
   events: EventItem[];
   messages: MessageItem[];
   highlights: Highlight[];
+  /** Páginas criadas no painel, exibidas no menu do cabeçalho. */
+  customPages: CustomPage[];
 };
 
 export const defaultContent: SiteContent = {
@@ -290,12 +316,33 @@ export const defaultContent: SiteContent = {
   events: [],
   messages: [],
   highlights: [],
+  customPages: [],
 };
+
+/** Endereço público de uma página criada no painel. */
+export function customPagePath(slug: string) {
+  return `/pagina/${slug}`;
+}
+
+/** Converte um texto em endereço: sem acentos, minúsculo e com hífens. */
+export function slugify(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
 
 export function getNavigation(content: SiteContent) {
   return [
     { label: "Início", to: "/" },
     { label: "Sobre a igreja", to: "/sobre" },
+    ...content.customPages.map((page) => ({
+      label: page.menuLabel || page.title,
+      to: customPagePath(page.slug),
+    })),
     ...(content.events.length > 0
       ? [{ label: "Cultos e agenda", to: "/agenda" }]
       : []),

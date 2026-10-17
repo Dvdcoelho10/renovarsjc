@@ -11,6 +11,7 @@ import Agenda from "./pages/Agenda";
 import Mensagens from "./pages/Mensagens";
 import Contato from "./pages/Contato";
 import Admins from "./pages/Admins";
+import CustomPage from "./pages/CustomPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,15 @@ const App = () => (
               element={
                 <SiteLayout>
                   <Contato />
+                </SiteLayout>
+              }
+            />
+            {/* Páginas criadas no painel: /pagina/{slug} */}
+            <Route
+              path="/pagina/:slug"
+              element={
+                <SiteLayout>
+                  <CustomPage />
                 </SiteLayout>
               }
             />

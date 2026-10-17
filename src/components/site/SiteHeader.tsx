@@ -31,14 +31,14 @@ export function SiteHeader() {
         <Link
           to="/"
           aria-label={`${church.name} — página inicial`}
-          className="rounded-full transition-opacity hover:opacity-90"
+          className="shrink-0 rounded-full transition-opacity hover:opacity-90"
         >
           <Logo />
         </Link>
 
         <nav
           aria-label="Navegação principal"
-          className="hidden items-center gap-1 lg:flex"
+          className="hidden min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto lg:flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {navigation.map((item) => (
             <NavLink
@@ -47,7 +47,7 @@ export function SiteHeader() {
               end={item.to === "/"}
               className={({ isActive }) =>
                 cn(
-                  "relative rounded-full px-4 py-2 text-sm transition-colors",
+                  "relative shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm transition-colors",
                   isActive
                     ? "font-medium text-primary"
                     : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
@@ -66,7 +66,7 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Button
             asChild
             className="hidden h-11 rounded-full px-6 text-sm shadow-[0_10px_24px_-14px_hsl(220_73%_31%_/_0.9)] sm:inline-flex"

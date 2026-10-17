@@ -10,7 +10,10 @@ import {
 
 import {
   defaultContent,
+  slugify,
   type ContactInfo,
+  type CustomPage,
+  type CustomPageSection,
   type EventItem,
   type Highlight,
   type ImagesCopy,
@@ -163,6 +166,61 @@ function normalizeHighlights(raw: unknown): Highlight[] {
   });
 }
 
+function normalizeCustomSections(raw: unknown): CustomPageSection[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw.flatMap((item, index) => {
+    const value = asRecord(item);
+    const heading = asText(value.heading, "").trim();
+    const body = asText(value.body, "").trim();
+    if (!heading && !body) return [];
+
+    return [
+      {
+        id: asText(value.id, `section-${index}`).trim() || `section-${index}`,
+        heading,
+        body,
+      },
+    ];
+  });
+}
+
+function normalizeCustomPages(raw: unknown): CustomPage[] {
+  if (!Array.isArray(raw)) return [];
+
+  const usedSlugs = new Set<string>();
+
+  return raw.flatMap((item, index) => {
+    const value = asRecord(item);
+    const menuLabel = asText(value.menuLabel, "").trim();
+    const title = asText(value.title, "").trim();
+    const baseSlug =
+      slugify(asText(value.slug, "")) || slugify(menuLabel) || slugify(title);
+    if (!baseSlug) return [];
+
+    let slug = baseSlug;
+    let suffix = 2;
+    while (usedSlugs.has(slug)) {
+      slug = `${baseSlug}-${suffix}`;
+      suffix += 1;
+    }
+    usedSlugs.add(slug);
+
+    return [
+      {
+        id: asText(value.id, `page-${index}`).trim() || `page-${index}`,
+        slug,
+        menuLabel: menuLabel || title,
+        title: title || menuLabel,
+        eyebrow: asText(value.eyebrow, "").trim(),
+        description: asText(value.description, "").trim(),
+        imageUrl: asImage(value.imageUrl),
+        sections: normalizeCustomSections(value.sections),
+      },
+    ];
+  });
+}
+
 function normalizeImages(raw: unknown): ImagesCopy {
   const value = asRecord(raw);
   const base = defaultContent.images;
@@ -293,6 +351,7 @@ export function normalizeContent(raw: unknown): SiteContent {
     events: normalizeEvents(value.events),
     messages: normalizeMessages(value.messages),
     highlights: normalizeHighlights(value.highlights),
+    customPages: normalizeCustomPages(value.customPages),
   };
 }
 

@@ -7,6 +7,7 @@ import {
   PageEditorFields,
   type EditablePage,
 } from "@/components/editor/PageEditorFields";
+import { CustomPageFields } from "@/components/admin/CustomPageFields";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -16,7 +17,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { normalizeContent, useSiteContent } from "@/content/ContentProvider";
-import type { SiteContent } from "@/content/site";
+import type { CustomPage, SiteContent } from "@/content/site";
 import { endAdminSession, hasEditorHint } from "@/lib/admin-auth";
 
 const pageByPath: Record<string, EditablePage> = {
@@ -63,13 +64,33 @@ export function PageEditor() {
   if (!isAdmin) return null;
 
   const path = pathname.replace(/\/+$/, "") || "/";
-  const page = pageByPath[path];
-  if (!page) return null;
+  const standardPage = pageByPath[path];
+
+  const customSlug = /^\/pagina\/(.+)$/.exec(path)?.[1];
+  const customPage = customSlug
+    ? content.customPages.find(
+        (item) => item.slug === decodeURIComponent(customSlug),
+      )
+    : undefined;
+
+  if (!standardPage && !customPage) return null;
+
+  const pageLabel = standardPage
+    ? pageLabels[standardPage]
+    : customPage!.menuLabel || customPage!.title;
 
   const openEditor = () => {
     setDraft(normalizeContent(content));
     setOpen(true);
   };
+
+  const updateCustomPage = (next: CustomPage) =>
+    setDraft((current) => ({
+      ...current,
+      customPages: current.customPages.map((item) =>
+        item.id === next.id ? next : item,
+      ),
+    }));
 
   const handleExit = () => {
     endAdminSession();
@@ -100,7 +121,7 @@ export function PageEditor() {
       return;
     }
 
-    toast.success(`Página “${pageLabels[page]}” atualizada.`);
+    toast.success(`Página “${pageLabel}” atualizada.`);
     setOpen(false);
   };
 
@@ -109,7 +130,7 @@ export function PageEditor() {
       <div className="fixed inset-x-3 bottom-3 z-40 mx-auto flex w-fit max-w-full items-center gap-1.5 rounded-full border border-primary-foreground/15 bg-primary px-2.5 py-2 text-primary-foreground shadow-[0_22px_50px_-20px_rgba(0,0,0,0.7)] sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:gap-2.5 sm:px-3.5">
         <span className="hidden items-center gap-2 pl-1 pr-1 text-xs font-medium sm:flex">
           <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-          Modo administrador · {pageLabels[page]}
+          Modo administrador · {pageLabel}
         </span>
 
         <Button
@@ -148,7 +169,7 @@ export function PageEditor() {
         >
           <SheetHeader className="pr-8 text-left">
             <SheetTitle className="text-2xl">
-              Editar página — {pageLabels[page]}
+              Editar página — {pageLabel}
             </SheetTitle>
             <SheetDescription className="leading-relaxed">
               Altere textos, imagens e links desta página. As mudanças aparecem
@@ -157,7 +178,21 @@ export function PageEditor() {
           </SheetHeader>
 
           <div className="mt-5">
-            <PageEditorFields page={page} draft={draft} onChange={setDraft} />
+            {standardPage ? (
+              <PageEditorFields
+                page={standardPage}
+                draft={draft}
+                onChange={setDraft}
+              />
+            ) : (
+              <CustomPageFields
+                page={
+                  draft.customPages.find((item) => item.id === customPage!.id) ??
+                  customPage!
+                }
+                onChange={updateCustomPage}
+              />
+            )}
           </div>
 
           <div className="sticky bottom-0 z-10 -mx-6 -mb-6 mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background/95 px-6 py-4 backdrop-blur">
