@@ -30,6 +30,7 @@ Available packages and libraries:
 # Painel administrativo (/admins)
 
 - Rota `/admins`, fora do menu público. Login em `src/lib/admin-auth.ts` (credenciais definidas pela igreja) e sessão em `sessionStorage`.
-- O painel edita: dados da igreja, textos do Início e Sobre, áreas, contato/redes/endereço, destaques, agenda e mensagens (com imagens por URL).
-- Não há servidor/banco conectado: a persistência é `localStorage`. Não prometer publicação para todos os visitantes até conectar um banco e mover autenticação + conteúdo para o servidor.
-- `<input type=file>`/upload de imagem não existe: imagens são informadas por URL.
+- O painel edita: dados da igreja, textos do Início e Sobre, áreas, contato/redes/endereço, destaques, agenda, mensagens, imagens (logo, fotos por página, eventos e mensagens) e a transmissão do YouTube.
+- Imagens: `ImageField` aceita upload do computador (otimizado para WebP via `src/lib/image.ts` e salvo como data URL) ou URL. O mesmo campo troca e remove.
+- Transmissão: `content.youtube` aceita ID/link do canal (embed `live_stream?channel=`) ou link de vídeo/live. A seção só aparece quando há player válido.
+- Não há servidor/banco conectado: a persistência é `localStorage` (~5 MB). Imagens grandes podem estourar a cota; `save()` retorna `false` e o painel avisa. Não prometer publicação para todos os visitantes até conectar um banco e mover autenticação + conteúdo para o servidor.

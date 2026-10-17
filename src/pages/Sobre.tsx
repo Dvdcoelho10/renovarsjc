@@ -12,7 +12,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 const Sobre = () => {
   usePageTitle("Sobre a igreja");
   const { content } = useSiteContent();
-  const { church, about } = content;
+  const { church, about, images } = content;
 
   const institutionalData = [
     { label: "Nome", value: church.name },
@@ -28,6 +28,7 @@ const Sobre = () => {
         eyebrow="Sobre a igreja"
         title={about.title}
         description={about.description}
+        imageUrl={images.aboutHero}
       />
 
       {/* Quem somos */}
@@ -100,7 +101,16 @@ const Sobre = () => {
           </div>
 
           <div className="mx-auto w-full max-w-sm rounded-[2rem] bg-card p-6 sm:p-8">
-            <BibleFlame />
+            {images.aboutBible ? (
+              <img
+                src={images.aboutBible}
+                alt=""
+                className="aspect-[4/3] w-full rounded-[1.5rem] object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <BibleFlame />
+            )}
           </div>
         </div>
       </section>

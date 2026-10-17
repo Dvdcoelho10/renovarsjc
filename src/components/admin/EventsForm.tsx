@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from "lucide-react";
 
 import { AdminSection, TextAreaField, TextField } from "@/components/admin/fields";
+import { ImageField } from "@/components/admin/ImageField";
 import { createId } from "@/components/admin/utils";
 import { Button } from "@/components/ui/button";
 import type { EventItem, SiteContent } from "@/content/site";
@@ -120,14 +121,13 @@ export function EventsForm({ content, onChange }: Props) {
             value={event.description ?? ""}
             onChange={(value) => patchEvent(index, "description", value)}
           />
-          <TextField
+          <ImageField
             id={`event-image-${event.id}`}
-            label="Imagem (URL)"
-            type="url"
+            label="Imagem do encontro"
             value={event.imageUrl ?? ""}
             onChange={(value) => patchEvent(index, "imageUrl", value)}
-            placeholder="https://.../foto.jpg"
-            hint="Cole o link de uma foto real da igreja."
+            hint="Envie uma foto real da igreja ou cole um link. Deixe vazio para não exibir."
+            previewClassName="h-36"
           />
         </div>
       ))}

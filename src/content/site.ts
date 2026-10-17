@@ -45,6 +45,34 @@ export type AboutCopy = {
   inviteDescription: string;
 };
 
+export type ImagesCopy = {
+  /** Foto do destaque da página inicial. */
+  homeHero: string;
+  /** Foto do bloco de missão na página inicial. */
+  homeMission: string;
+  /** Foto de abertura da página Sobre. */
+  aboutHero: string;
+  /** Foto do bloco sobre a Bíblia. */
+  aboutBible: string;
+  /** Foto de abertura da página Agenda. */
+  agendaHero: string;
+  /** Foto de abertura da página Mensagens. */
+  messagesHero: string;
+  /** Foto de abertura da página Contato. */
+  contactHero: string;
+};
+
+export type YoutubeCopy = {
+  /** ID do canal (começa com "UC") ou link do canal. */
+  channel: string;
+  /** Link de uma transmissão específica (tem prioridade sobre o canal). */
+  videoUrl: string;
+  /** Link público do canal, usado no botão "Abrir no YouTube". */
+  channelUrl: string;
+  title: string;
+  description: string;
+};
+
 export type ContactInfo = {
   phone: string;
   whatsapp: string;
@@ -111,6 +139,8 @@ export type SiteContent = {
   home: HomeCopy;
   about: AboutCopy;
   contact: ContactInfo;
+  images: ImagesCopy;
+  youtube: YoutubeCopy;
   ministryAreas: MinistryArea[];
   events: EventItem[];
   messages: MessageItem[];
@@ -206,10 +236,62 @@ export const defaultContent: SiteContent = {
     },
   ],
 
+  images: {
+    homeHero: "",
+    homeMission: "",
+    aboutHero: "",
+    aboutBible: "",
+    agendaHero: "",
+    messagesHero: "",
+    contactHero: "",
+  },
+
+  youtube: {
+    channel: "",
+    videoUrl: "",
+    channelUrl: "",
+    title: "Transmissão ao vivo",
+    description:
+      "Acompanhe os cultos e as transmissões da igreja pelo canal oficial no YouTube.",
+  },
+
   events: [],
   messages: [],
   highlights: [],
 };
+
+/** Extrai o ID de um vídeo do YouTube a partir de links comuns. */
+export function getYoutubeVideoId(value: string) {
+  const input = value.trim();
+  if (!input) return "";
+
+  if (/^[\w-]{11}$/.test(input)) return input;
+
+  const patterns = [
+    /(?:youtube\.com\/watch\?(?:.*&)?v=)([\w-]{11})/,
+    /(?:youtu\.be\/)([\w-]{11})/,
+    /(?:youtube\.com\/live\/)([\w-]{11})/,
+    /(?:youtube\.com\/embed\/)([\w-]{11})/,
+    /(?:youtube\.com\/shorts\/)([\w-]{11})/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = input.match(pattern);
+    if (match) return match[1];
+  }
+
+  return "";
+}
+
+/** Extrai o ID do canal (UC...) a partir do campo informado. */
+export function getYoutubeChannelId(value: string) {
+  const input = value.trim();
+  if (!input) return "";
+  if (/^UC[\w-]{22}$/.test(input)) return input;
+
+  const match = input.match(/youtube\.com\/channel\/(UC[\w-]{22})/);
+  return match ? match[1] : "";
+}
 
 export function getNavigation(content: SiteContent) {
   return [

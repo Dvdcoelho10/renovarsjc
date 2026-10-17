@@ -6,6 +6,7 @@ import {
   TextAreaField,
   TextField,
 } from "@/components/admin/fields";
+import { ImageField } from "@/components/admin/ImageField";
 import { createId } from "@/components/admin/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -159,13 +160,13 @@ export function MessagesForm({ content, onChange }: Props) {
               placeholder="https://youtube.com/..."
             />
           </div>
-          <TextField
+          <ImageField
             id={`message-image-${message.id}`}
-            label="Imagem (URL, opcional)"
-            type="url"
+            label="Imagem da publicação (opcional)"
             value={message.imageUrl ?? ""}
             onChange={(value) => patchMessage(index, "imageUrl", value)}
-            placeholder="https://.../foto.jpg"
+            hint="Envie uma foto do computador ou cole um link."
+            previewClassName="h-36"
           />
         </div>
       ))}

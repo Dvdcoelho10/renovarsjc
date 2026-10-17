@@ -110,6 +110,7 @@ const Contato = () => {
         eyebrow="Contato e localização"
         title="Fale com a igreja"
         description="Canais oficiais de contato, endereço e informações para visita. Publicamos apenas dados confirmados pela liderança."
+        imageUrl={content.images.contactHero}
       />
 
       <section className="container py-16 sm:py-20">

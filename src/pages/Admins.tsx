@@ -17,7 +17,9 @@ import { ContactForm } from "@/components/admin/ContactForm";
 import { EventsForm } from "@/components/admin/EventsForm";
 import { GeneralForm } from "@/components/admin/GeneralForm";
 import { HighlightsForm } from "@/components/admin/HighlightsForm";
+import { ImagesForm } from "@/components/admin/ImagesForm";
 import { MessagesForm } from "@/components/admin/MessagesForm";
+import { YoutubeForm } from "@/components/admin/YoutubeForm";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +40,8 @@ import { usePageTitle } from "@/hooks/use-page-title";
 
 const tabLabels = {
   geral: "Conteúdo geral",
+  imagens: "Imagens",
+  youtube: "Ao vivo",
   contato: "Contato",
   destaques: "Destaques",
   agenda: "Agenda",
@@ -74,9 +78,16 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }
 
     const normalized = normalizeContent(draft);
-    save(normalized);
+    const stored = save(normalized);
     setDraft(normalized);
-    toast.success("Conteúdo salvo neste navegador.");
+
+    if (stored) {
+      toast.success("Conteúdo salvo neste navegador.");
+    } else {
+      toast.error(
+        "O navegador não tem espaço para salvar. Remova algumas imagens e tente novamente.",
+      );
+    }
   };
 
   const handleExport = () => {
@@ -225,6 +236,12 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           <div className="mt-5">
             <TabsContent value="geral" className="mt-0">
               <GeneralForm content={draft} onChange={setDraft} />
+            </TabsContent>
+            <TabsContent value="imagens" className="mt-0">
+              <ImagesForm content={draft} onChange={setDraft} />
+            </TabsContent>
+            <TabsContent value="youtube" className="mt-0">
+              <YoutubeForm content={draft} onChange={setDraft} />
             </TabsContent>
             <TabsContent value="contato" className="mt-0">
               <ContactForm content={draft} onChange={setDraft} />

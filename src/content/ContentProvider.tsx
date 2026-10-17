@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -12,8 +13,10 @@ import {
   type ContactInfo,
   type EventItem,
   type Highlight,
+  type ImagesCopy,
   type MessageItem,
   type SiteContent,
+  type YoutubeCopy,
 } from "@/content/site";
 
 const STORAGE_KEY = "adr-site-content-v1";
@@ -32,6 +35,41 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
+/** Mantém apenas links seguros (http, https, mailto, tel ou caminho interno). */
+function asLink(value: unknown, fallback = "") {
+  let candidate = asText(value, fallback).trim();
+  if (!candidate) return "";
+
+  if (candidate.startsWith("/")) return candidate;
+  if (/^[\w-]+(\.[\w-]+)+\/?/i.test(candidate) && !candidate.includes(":")) {
+    candidate = `https://${candidate}`;
+  }
+
+  try {
+    const url = new URL(candidate);
+    return ["http:", "https:", "mailto:", "tel:"].includes(url.protocol)
+      ? candidate
+      : "";
+  } catch {
+    return "";
+  }
+}
+
+/** Aceita data URL de imagem, caminho interno ou URL http(s). */
+function asImage(value: unknown, fallback = "") {
+  const candidate = asText(value, fallback).trim();
+  if (!candidate) return "";
+  if (candidate.startsWith("data:image/")) return candidate;
+  if (
+    candidate.startsWith("/") ||
+    candidate.startsWith("http://") ||
+    candidate.startsWith("https://")
+  ) {
+    return candidate;
+  }
+  return "";
+}
+
 function normalizeContact(raw: unknown): ContactInfo {
   const value = asRecord(raw);
   const social = asRecord(value.social);
@@ -43,14 +81,14 @@ function normalizeContact(raw: unknown): ContactInfo {
     email: asText(value.email, base.email),
     address: asText(value.address, base.address),
     addressComplement: asText(value.addressComplement, base.addressComplement),
-    mapEmbedUrl: asText(value.mapEmbedUrl, base.mapEmbedUrl),
-    directionsUrl: asText(value.directionsUrl, base.directionsUrl),
+    mapEmbedUrl: asLink(value.mapEmbedUrl, base.mapEmbedUrl),
+    directionsUrl: asLink(value.directionsUrl, base.directionsUrl),
     locationNote: asText(value.locationNote, base.locationNote),
     visitNote: asText(value.visitNote, base.visitNote),
     social: {
-      instagram: asText(social.instagram, base.social.instagram),
-      facebook: asText(social.facebook, base.social.facebook),
-      youtube: asText(social.youtube, base.social.youtube),
+      instagram: asLink(social.instagram, base.social.instagram),
+      facebook: asLink(social.facebook, base.social.facebook),
+      youtube: asLink(social.youtube, base.social.youtube),
     },
   };
 }
@@ -72,7 +110,7 @@ function normalizeEvents(raw: unknown): EventItem[] {
         description: asText(value.description, ""),
         time: asText(value.time, ""),
         location: asText(value.location, ""),
-        imageUrl: asText(value.imageUrl, ""),
+        imageUrl: asImage(value.imageUrl),
       },
     ];
   });
@@ -97,8 +135,8 @@ function normalizeMessages(raw: unknown): MessageItem[] {
         body: asText(value.body, ""),
         author: asText(value.author, ""),
         publishedAt: asText(value.publishedAt, ""),
-        videoUrl: asText(value.videoUrl, ""),
-        imageUrl: asText(value.imageUrl, ""),
+        videoUrl: asLink(value.videoUrl),
+        imageUrl: asImage(value.imageUrl),
       },
     ];
   });
@@ -118,10 +156,38 @@ function normalizeHighlights(raw: unknown): Highlight[] {
         title,
         description: asText(value.description, ""),
         linkLabel: asText(value.linkLabel, ""),
-        linkUrl: asText(value.linkUrl, ""),
+        linkUrl: asLink(value.linkUrl),
       },
     ];
   });
+}
+
+function normalizeImages(raw: unknown): ImagesCopy {
+  const value = asRecord(raw);
+  const base = defaultContent.images;
+
+  return {
+    homeHero: asImage(value.homeHero, base.homeHero),
+    homeMission: asImage(value.homeMission, base.homeMission),
+    aboutHero: asImage(value.aboutHero, base.aboutHero),
+    aboutBible: asImage(value.aboutBible, base.aboutBible),
+    agendaHero: asImage(value.agendaHero, base.agendaHero),
+    messagesHero: asImage(value.messagesHero, base.messagesHero),
+    contactHero: asImage(value.contactHero, base.contactHero),
+  };
+}
+
+function normalizeYoutube(raw: unknown): YoutubeCopy {
+  const value = asRecord(raw);
+  const base = defaultContent.youtube;
+
+  return {
+    channel: asText(value.channel, base.channel),
+    videoUrl: asLink(value.videoUrl, base.videoUrl),
+    channelUrl: asLink(value.channelUrl, base.channelUrl),
+    title: asText(value.title, base.title),
+    description: asText(value.description, base.description),
+  };
 }
 
 export function normalizeContent(raw: unknown): SiteContent {
@@ -162,7 +228,7 @@ export function normalizeContent(raw: unknown): SiteContent {
         church.missionStatement,
         defaults.church.missionStatement,
       ),
-      logoUrl: asText(church.logoUrl, defaults.church.logoUrl),
+      logoUrl: asImage(church.logoUrl, defaults.church.logoUrl),
     },
     home: {
       heroEyebrow: asText(home.heroEyebrow, defaults.home.heroEyebrow),
@@ -192,6 +258,8 @@ export function normalizeContent(raw: unknown): SiteContent {
       ),
     },
     contact: normalizeContact(value.contact),
+    images: normalizeImages(value.images),
+    youtube: normalizeYoutube(value.youtube),
     ministryAreas: areas,
     events: normalizeEvents(value.events),
     messages: normalizeMessages(value.messages),
@@ -201,7 +269,8 @@ export function normalizeContent(raw: unknown): SiteContent {
 
 type ContentContextValue = {
   content: SiteContent;
-  save: (next: SiteContent) => void;
+  /** Retorna false quando o navegador não conseguiu armazenar o conteúdo. */
+  save: (next: SiteContent) => boolean;
   reset: () => void;
 };
 
@@ -224,12 +293,14 @@ export function ContentProvider({ children }: { children: ReactNode }) {
 
   const save = useCallback((next: SiteContent) => {
     const normalized = normalizeContent(next);
+    let stored = true;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
     } catch {
-      // Sem espaço no navegador: mantém a sessão atual mesmo sem persistir.
+      stored = false;
     }
     setContent(normalized);
+    return stored;
   }, []);
 
   const reset = useCallback(() => {
@@ -240,6 +311,18 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     }
     setContent(clone(defaultContent));
   }, []);
+
+  // Mantém o favicon alinhado com a logo escolhida no painel.
+  useEffect(() => {
+    const logoSrc = content.church.logoUrl || "/logo-adr.png";
+    let icon = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+    if (!icon) {
+      icon = document.createElement("link");
+      icon.rel = "icon";
+      document.head.appendChild(icon);
+    }
+    icon.href = logoSrc;
+  }, [content.church.logoUrl]);
 
   const value = useMemo(
     () => ({ content, save, reset }),

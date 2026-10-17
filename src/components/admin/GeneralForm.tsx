@@ -106,16 +106,10 @@ export function GeneralForm({ content, onChange }: Props) {
             value={content.church.missionStatement}
             onChange={(value) => patchChurch("missionStatement", value)}
           />
-          <TextField
-            id="church-logo"
-            label="Logo (URL ou caminho)"
-            value={content.church.logoUrl}
-            onChange={(value) => patchChurch("logoUrl", value)}
-            placeholder="/logo-adr.png"
-            hint="Use /logo-adr.png para a logo enviada ou cole o link de outra imagem."
-            type="url"
-          />
         </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          A logo é editada na aba “Imagens”, junto com as fotos das páginas.
+        </p>
       </AdminSection>
 
       <AdminSection

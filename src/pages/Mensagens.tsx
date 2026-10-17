@@ -45,6 +45,7 @@ const Mensagens = () => {
         eyebrow="Mensagens e conteúdos"
         title="Reflexões, estudos e vídeos da igreja"
         description="Conteúdos publicados pela liderança da Assembleia de Deus Renovar. Nada é publicado sem confirmação da igreja."
+        imageUrl={content.images.messagesHero}
       />
 
       <section className="container py-16 sm:py-20">

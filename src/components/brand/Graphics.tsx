@@ -5,10 +5,56 @@ import { useSiteContent } from "@/content/ContentProvider";
  * Composição gráfica discreta usada no destaque da página inicial.
  * Não simula templo, membros ou liderança: usa apenas arcos da identidade.
  */
-export function EmblemPanel({ className }: { className?: string }) {
+export function EmblemPanel({
+  className,
+  imageUrl,
+}: {
+  className?: string;
+  imageUrl?: string;
+}) {
   const { content } = useSiteContent();
   const { church } = content;
   const logoSrc = church.logoUrl || "/logo-adr.png";
+
+  if (imageUrl) {
+    return (
+      <div
+        className={cn(
+          "relative isolate overflow-hidden rounded-[2rem] bg-primary sm:rounded-[2.5rem]",
+          "shadow-[0_40px_80px_-45px_hsl(220_73%_31%_/_0.65)]",
+          className,
+        )}
+      >
+        <img
+          src={imageUrl}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-2/5 bg-primary/35"
+        />
+        <div className="relative flex h-full items-end p-4 sm:p-5">
+          <div className="flex items-center gap-3 rounded-2xl bg-background/95 px-4 py-3 shadow-lg backdrop-blur">
+            <img
+              src={logoSrc}
+              alt={`Emblema da ${church.shortName}`}
+              className="h-10 w-10 object-contain"
+            />
+            <div className="leading-tight">
+              <p className="font-serif text-sm font-semibold text-foreground">
+                {church.acronym}
+              </p>
+              <p className="mt-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                {church.city}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

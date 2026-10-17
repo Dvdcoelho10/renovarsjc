@@ -21,6 +21,7 @@ const Agenda = () => {
         eyebrow="Cultos e agenda"
         title="Nossos encontros e a programação da igreja"
         description="Horários de cultos, encontros e eventos serão publicados nesta página pela liderança, com data, horário e local confirmados."
+        imageUrl={content.images.agendaHero}
       />
 
       <section className="container py-16 sm:py-20">

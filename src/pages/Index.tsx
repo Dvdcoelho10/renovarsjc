@@ -6,13 +6,14 @@ import { EmblemPanel, BibleFlame } from "@/components/brand/Graphics";
 import { SectionHeading } from "@/components/site/SectionHeading";
 import { AreasGrid } from "@/components/site/AreasGrid";
 import { InvitePanel } from "@/components/site/InvitePanel";
+import { LiveSection } from "@/components/site/LiveSection";
 import { useSiteContent } from "@/content/ContentProvider";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const Index = () => {
   usePageTitle();
   const { content } = useSiteContent();
-  const { church, home, highlights } = content;
+  const { church, home, highlights, images, youtube } = content;
 
   const facts = [
     { label: "Fundação", value: church.foundedAt },
@@ -83,7 +84,7 @@ const Index = () => {
             className="animate-rise mx-auto w-full max-w-[20rem] sm:max-w-sm lg:max-w-none"
             style={{ animationDelay: "220ms" }}
           >
-            <EmblemPanel className="aspect-[4/5]" />
+            <EmblemPanel className="aspect-[4/5]" imageUrl={images.homeHero} />
           </div>
         </div>
       </section>
@@ -107,11 +108,23 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Transmissão ao vivo */}
+      <LiveSection youtube={youtube} />
+
       {/* Missão */}
       <section className="container py-20 sm:py-24">
         <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-16">
           <div className="rounded-[2rem] bg-secondary/60 p-6 sm:p-10">
-            <BibleFlame className="mx-auto max-w-[19rem]" />
+            {images.homeMission ? (
+              <img
+                src={images.homeMission}
+                alt=""
+                className="aspect-[4/3] w-full rounded-[1.5rem] object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <BibleFlame className="mx-auto max-w-[19rem]" />
+            )}
             <p className="mt-6 text-center text-sm leading-relaxed text-muted-foreground">
               A Bíblia é a referência de fé e a orientação da igreja.
             </p>
