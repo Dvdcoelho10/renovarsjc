@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { Download, ImagePlus, Trash2 } from "lucide-react";
 
 import { AdminField } from "@/components/admin/fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { optimizeImageFile } from "@/lib/image";
+import { downloadImage } from "@/lib/images-download";
 
 type ImageFieldProps = {
   id: string;
@@ -27,6 +28,21 @@ export function ImageField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setError("");
+    setDownloading(true);
+    try {
+      await downloadImage(value, label);
+    } catch {
+      setError(
+        "Não foi possível baixar esta imagem. Links externos podem bloquear o download.",
+      );
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const handleFile = async (file: File) => {
     setError("");
@@ -74,6 +90,17 @@ export function ImageField({
           >
             <ImagePlus className="mr-1.5 h-4 w-4" aria-hidden="true" />
             {loading ? "Preparando..." : value ? "Trocar imagem" : "Enviar imagem"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={!value || downloading}
+            onClick={handleDownload}
+            className="rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+          >
+            <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+            {downloading ? "Baixando..." : "Baixar"}
           </Button>
           <Button
             type="button"

@@ -55,10 +55,29 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [draft, setDraft] = useState<SiteContent>(() =>
     normalizeContent(content),
   );
-  const [tab, setTab] = useState<TabValue>("geral");
+  const [tab, setTab] = useState<TabValue>(() => {
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    return requested && requested in tabLabels
+      ? (requested as TabValue)
+      : "geral";
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(content);
+
+  useEffect(() => {
+    if (tab !== "imagens") return;
+    const target = window.location.hash.replace("#", "");
+    if (!target) return;
+
+    const timer = window.setTimeout(() => {
+      document
+        .getElementById(target)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+
+    return () => window.clearTimeout(timer);
+  }, [tab]);
 
   const handleSave = () => {
     if (draft.events.some((event) => !event.title.trim() || !event.date)) {

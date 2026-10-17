@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, Bell, Play } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Bell, ImagePlus, Play } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { EmblemPanel, BibleFlame } from "@/components/brand/Graphics";
@@ -8,6 +8,7 @@ import { AreasGrid } from "@/components/site/AreasGrid";
 import { InvitePanel } from "@/components/site/InvitePanel";
 import { LatestVideoSection } from "@/components/site/LatestVideoSection";
 import { useSiteContent } from "@/content/ContentProvider";
+import { hasAdminSession } from "@/lib/admin-auth";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const Index = () => {
@@ -93,10 +94,20 @@ const Index = () => {
           </div>
 
           <div
-            className="animate-rise mx-auto w-full max-w-[20rem] sm:max-w-sm lg:max-w-none"
+            className="animate-rise relative mx-auto w-full max-w-[20rem] sm:max-w-sm lg:max-w-none"
             style={{ animationDelay: "220ms" }}
           >
             <EmblemPanel className="aspect-[4/5]" imageUrl={images.homeHero} />
+
+            {hasAdminSession() && (
+              <Link
+                to="/admins?tab=imagens#image-homeHero"
+                className="absolute right-3 top-3 z-10 inline-flex items-center gap-2 rounded-full bg-background/95 px-3 py-2 text-xs font-medium text-foreground shadow-lg backdrop-blur transition-colors hover:bg-background"
+              >
+                <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                Trocar imagem
+              </Link>
+            )}
           </div>
         </div>
       </section>
