@@ -1,26 +1,28 @@
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { Link } from "react-router-dom";
+
+import { SiteLayout } from "@/components/site/SiteLayout";
+import { Button } from "@/components/ui/button";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 const NotFound = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname,
-    );
-  }, [location.pathname]);
+  usePageTitle("Página não encontrada");
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
-        <p className="text-xl text-gray-600 mb-4">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 hover:text-blue-700 underline">
-          Return to Home
-        </a>
-      </div>
-    </div>
+    <SiteLayout>
+      <section className="container flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
+        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-accent-deep">
+          Erro 404
+        </p>
+        <h1 className="mt-4 text-4xl sm:text-5xl">Página não encontrada</h1>
+        <p className="mt-4 max-w-md text-[1.02rem] leading-relaxed text-muted-foreground">
+          O endereço acessado não existe ou foi movido. Você pode voltar ao início
+          e continuar navegando pelo site.
+        </p>
+        <Button asChild className="mt-8 h-12 rounded-full px-7">
+          <Link to="/">Voltar ao início</Link>
+        </Button>
+      </section>
+    </SiteLayout>
   );
 };
 

@@ -17,3 +17,12 @@ Available packages and libraries:
 - You ALREADY have ALL the shadcn/ui components and their dependencies installed. So you don't need to install them again.
 - You have ALL the necessary Radix UI components installed.
 - Use prebuilt components from the shadcn/ui library after importing them. Note that these files shouldn't be edited, so make new components if you need to change them.
+
+# Conteúdo institucional (Igreja Assembleia de Deus Renovar)
+
+- Todo conteúdo factual (igreja, contato, agenda, mensagens, destaques) vive em `src/content/site.ts`. Edite lá, nunca duplique textos nas páginas.
+- Nunca inventar pastores, liderança, horários de cultos, telefones, redes sociais, CNPJ, número de membros, testemunhos ou resultados de ações sociais.
+- O endereço do estatuto é provisório: não publicar mapas nem rotas sem confirmação (`hasConfirmedAddress` só ativa com endereço + mapa + rota preenchidos).
+- Agenda, Mensagens e Destaques só aparecem com conteúdo real. As rotas existem, mas devem mostrar estados vazios honestos.
+- Áreas do estatuto (Evangelização, Educação Cristã, Ação Social) são *previstas*, não atividades confirmadas — manter o aviso nas seções.
+- O estatuto não é publicado nem disponibilizado para download no site.
