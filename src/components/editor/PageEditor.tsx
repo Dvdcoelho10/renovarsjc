@@ -151,6 +151,13 @@ export function PageEditor() {
           Painel
         </Link>
 
+        <Link
+          to="/admins?tab=paginas"
+          className="rounded-full px-2.5 py-1.5 text-xs font-medium text-primary-foreground/90 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground"
+        >
+          Páginas
+        </Link>
+
         <button
           type="button"
           onClick={handleExit}
