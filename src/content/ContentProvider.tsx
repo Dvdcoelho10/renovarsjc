@@ -15,6 +15,7 @@ import {
   type CustomPage,
   type CustomPageSection,
   type EventItem,
+  type GivingCopy,
   type Highlight,
   type ImagesCopy,
   type MessageItem,
@@ -257,6 +258,21 @@ function normalizeYoutube(raw: unknown): YoutubeCopy {
   };
 }
 
+function normalizeGiving(raw: unknown): GivingCopy {
+  const value = asRecord(raw);
+  const base = defaultContent.giving;
+
+  return {
+    enabled: typeof value.enabled === "boolean" ? value.enabled : base.enabled,
+    title: asText(value.title, base.title),
+    description: asText(value.description, base.description),
+    legalName: asText(value.legalName, base.legalName),
+    cnpj: asText(value.cnpj, base.cnpj),
+    qrImageUrl: asImage(value.qrImageUrl, base.qrImageUrl),
+    note: asText(value.note, base.note),
+  };
+}
+
 function normalizePageHeader(
   raw: unknown,
   base: PageHeaderCopy,
@@ -347,6 +363,7 @@ export function normalizeContent(raw: unknown): SiteContent {
     contact: normalizeContact(value.contact),
     images: normalizeImages(value.images),
     youtube: normalizeYoutube(value.youtube),
+    giving: normalizeGiving(value.giving),
     ministryAreas: areas,
     events: normalizeEvents(value.events),
     messages: normalizeMessages(value.messages),

@@ -7,6 +7,7 @@ import {
 import { ContactForm } from "@/components/admin/ContactForm";
 import { EventsForm } from "@/components/admin/EventsForm";
 import { AdminSection } from "@/components/admin/fields";
+import { GivingForm } from "@/components/admin/GivingForm";
 import { HighlightsForm } from "@/components/admin/HighlightsForm";
 import { ImageField } from "@/components/admin/ImageField";
 import { MessagesForm } from "@/components/admin/MessagesForm";
@@ -64,6 +65,8 @@ export function PageEditorFields({ page, draft, onChange }: Props) {
             hint="Substitui a ilustração da Bíblia no bloco de missão."
           />
         </AdminSection>
+
+        <GivingForm content={draft} onChange={onChange} />
 
         <HighlightsForm content={draft} onChange={onChange} />
       </div>

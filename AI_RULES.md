@@ -26,6 +26,7 @@ Available packages and libraries:
 - Agenda, Mensagens e Destaques só aparecem com conteúdo real. As rotas existem, mas devem mostrar estados vazios honestos.
 - Áreas do estatuto (Evangelização, Educação Cristã, Ação Social) são *previstas*, não atividades confirmadas — manter o aviso nas seções.
 - O estatuto não é publicado nem disponibilizado para download no site.
+- Dízimos e ofertas: `content.giving` guarda `enabled`, título, instrução, nome na tarja, CNPJ (21.269.489/0001-71, confirmado pela igreja), QR Code (`/pix-qrcode.png`) e observação. O card fica em `src/components/site/GivingCard.tsx` e aparece ao lado do último vídeo (abaixo dele no celular), dentro de `LatestVideoSection`; também entra no ZIP de imagens do painel. Editável na aba Início do painel (`src/components/admin/GivingForm.tsx`), inclusive o upload do QR. Nunca trocar o QR Code nem o CNPJ sem confirmação da liderança.
 
 # Painel administrativo (/admins)
 

@@ -14,7 +14,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 const Index = () => {
   usePageTitle();
   const { content } = useSiteContent();
-  const { church, home, highlights, images, youtube } = content;
+  const { church, home, highlights, images, youtube, giving } = content;
 
   const facts = [
     { label: "Fundação", value: church.foundedAt },
@@ -131,8 +131,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Último vídeo do canal */}
-      <LatestVideoSection youtube={youtube} />
+      {/* Último vídeo do canal e dízimos/ofertas */}
+      <LatestVideoSection youtube={youtube} giving={giving} />
 
       {/* Missão */}
       <section className="container py-20 sm:py-24">

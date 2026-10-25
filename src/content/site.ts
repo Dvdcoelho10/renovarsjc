@@ -107,6 +107,22 @@ export type YoutubeCopy = {
   description: string;
 };
 
+/** Bloco de dízimos e ofertas com o QR Code Pix da igreja. */
+export type GivingCopy = {
+  /** Exibe o bloco no site. */
+  enabled: boolean;
+  title: string;
+  description: string;
+  /** Nome que aparece na tarja abaixo do QR Code. */
+  legalName: string;
+  /** CNPJ da igreja, usado também como chave Pix. */
+  cnpj: string;
+  /** Imagem do QR Code (upload ou URL). */
+  qrImageUrl: string;
+  /** Observação curta abaixo do botão de copiar. */
+  note: string;
+};
+
 export type ContactInfo = {
   phone: string;
   whatsapp: string;
@@ -176,6 +192,7 @@ export type SiteContent = {
   contact: ContactInfo;
   images: ImagesCopy;
   youtube: YoutubeCopy;
+  giving: GivingCopy;
   ministryAreas: MinistryArea[];
   events: EventItem[];
   messages: MessageItem[];
@@ -311,6 +328,19 @@ export const defaultContent: SiteContent = {
     title: "Assista ao último vídeo",
     description:
       "Sempre que a TV Renovar publica um novo vídeo, ele aparece aqui automaticamente. Assista sem sair do site.",
+  },
+
+  // QR Code Pix confirmado pela igreja (CNPJ 21.269.489/0001-71).
+  giving: {
+    enabled: true,
+    title: "Dízimos e ofertas",
+    description:
+      "Aponte a câmera do celular para o QR Code e faça sua contribuição pelo aplicativo do seu banco.",
+    legalName: "Assembleia de Deus Renovar",
+    cnpj: "21.269.489/0001-71",
+    qrImageUrl: "/pix-qrcode.png",
+    note:
+      "A chave Pix da igreja é o CNPJ. Dízimos e ofertas são contribuições voluntárias.",
   },
 
   events: [],

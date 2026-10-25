@@ -42,6 +42,10 @@ function collectImages(content: SiteContent): DownloadableImage[] {
       name: `pagina-${page.slug}-abertura`,
       url: page.imageUrl,
     })),
+    {
+      name: "qrcode-pix-dizimos-ofertas",
+      url: content.giving.qrImageUrl,
+    },
   ].filter((image) => image.url.trim().length > 0);
 }
 
