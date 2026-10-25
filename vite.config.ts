@@ -5,25 +5,39 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-type YoutubeHandler = (
+type ApiHandler = (
   req: IncomingMessage,
   res: ServerResponse,
   env: Record<string, string | undefined>,
 ) => Promise<void>;
 
+/** Rotas de servidor servidas em desenvolvimento pelo Vite. */
+const apiRoutes: Record<string, { module: string; handler: string }> = {
+  "/api/youtube/latest": {
+    module: "server/youtube.mjs",
+    handler: "handleLatestVideoRequest",
+  },
+  "/api/contact": {
+    module: "server/contact.mjs",
+    handler: "handleContactRequest",
+  },
+};
+
 /**
- * Em desenvolvimento o Vite serve a mesma rota de API do servidor de produção
- * (server/youtube.mjs), lendo as credenciais do .env. A chave nunca vai para
- * o bundle do cliente.
+ * Em desenvolvimento o Vite serve as mesmas rotas de API do servidor de
+ * produção (pasta server/), lendo as credenciais do .env. Chaves de YouTube e
+ * senha do SMTP nunca vão para o bundle do cliente.
  */
-function youtubeApiPlugin(env: Record<string, string>): Plugin {
+function siteApiPlugin(env: Record<string, string>): Plugin {
   return {
-    name: "youtube-api",
+    name: "site-api",
     apply: "serve",
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        const pathname = (req.url ?? "").split("?")[0];
-        if (pathname !== "/api/youtube/latest") {
+        const pathname = (req.url ?? "").split("?")[0].replace(/\/+$/, "");
+        const route = apiRoutes[pathname];
+
+        if (!route) {
           next();
           return;
         }
@@ -31,17 +45,15 @@ function youtubeApiPlugin(env: Record<string, string>): Plugin {
         void (async () => {
           try {
             const moduleUrl = pathToFileURL(
-              path.resolve(__dirname, "server/youtube.mjs"),
+              path.resolve(__dirname, route.module),
             ).href;
-            const mod = (await import(/* @vite-ignore */ moduleUrl)) as {
-              handleLatestVideoRequest: YoutubeHandler;
-            };
-            await mod.handleLatestVideoRequest(req, res, {
-              ...env,
-              ...process.env,
-            });
+            const mod = (await import(/* @vite-ignore */ moduleUrl)) as Record<
+              string,
+              ApiHandler
+            >;
+            await mod[route.handler](req, res, { ...env, ...process.env });
           } catch (error) {
-            console.error("[youtube-api] falha ao processar a requisição", error);
+            console.error(`[site-api] falha em ${pathname}`, error);
             res.statusCode = 500;
             res.setHeader("Content-Type", "application/json; charset=utf-8");
             res.end(JSON.stringify({ error: "internal_error" }));
@@ -60,7 +72,7 @@ export default defineConfig(({ mode }) => {
       host: "::",
       port: 8080,
     },
-    plugins: [dyadComponentTagger(), react(), youtubeApiPlugin(env)],
+    plugins: [dyadComponentTagger(), react(), siteApiPlugin(env)],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

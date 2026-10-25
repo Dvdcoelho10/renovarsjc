@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { ContactMessageForm } from "@/components/site/ContactMessageForm";
 import { PageHeader } from "@/components/site/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useSiteContent } from "@/content/ContentProvider";
@@ -115,7 +116,11 @@ const Contato = () => {
 
       <section className="container py-16 sm:py-20">
         <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
-          <div>
+          <div className="space-y-8">
+            <ContactMessageForm
+              recipient={contact.email || "contato@adrenovar.com.br"}
+            />
+
             {hasContactInfo(contact) ? (
               <div className="space-y-8">
                 {channels.length > 0 && (
@@ -237,9 +242,9 @@ const Contato = () => {
                   Os canais de contato ainda não foram publicados
                 </h2>
                 <p className="mt-3 text-[0.98rem] leading-relaxed text-muted-foreground">
-                  Telefone, WhatsApp, e-mail e redes sociais serão divulgados
-                  aqui somente depois de confirmados pela liderança. Não
-                  publicamos contatos que não sejam oficiais.
+                  Telefone, WhatsApp e redes sociais serão divulgados aqui
+                  somente depois de confirmados pela liderança. Não publicamos
+                  contatos que não sejam oficiais.
                 </p>
                 <p className="mt-3 text-[0.98rem] leading-relaxed text-muted-foreground">
                   Enquanto isso, você pode conhecer a história da igreja e a

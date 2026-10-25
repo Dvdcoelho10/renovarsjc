@@ -1,6 +1,7 @@
 /**
- * Servidor de produção: serve o build estático (dist/) e a rota
- * /api/youtube/latest. As credenciais ficam no ambiente (.env ou hPanel).
+ * Servidor de produção: serve o build estático (dist/) e as rotas
+ * /api/youtube/latest e /api/contact. As credenciais ficam no ambiente
+ * (.env ou hPanel).
  *
  * Uso: npm run build && npm start
  */
@@ -10,6 +11,7 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { handleContactRequest } from "./server/contact.mjs";
 import { handleLatestVideoRequest } from "./server/youtube.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -88,6 +90,11 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname === "/api/contact") {
+    await handleContactRequest(req, res, env);
+    return;
+  }
+
   if (url.pathname.startsWith("/api/")) {
     res.statusCode = 404;
     res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -142,6 +149,11 @@ server.listen(port, "0.0.0.0", () => {
   if (!env.YOUTUBE_API_KEY) {
     console.warn(
       "[youtube] YOUTUBE_API_KEY não configurada: a seção do último vídeo ficará indisponível.",
+    );
+  }
+  if (!env.SMTP_PASSWORD) {
+    console.warn(
+      "[contato] SMTP_PASSWORD não configurada: o formulário de contato não envia e-mails.",
     );
   }
 });

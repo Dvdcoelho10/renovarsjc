@@ -275,7 +275,7 @@ export const defaultContent: SiteContent = {
   contact: {
     phone: "",
     whatsapp: "",
-    email: "",
+    email: "contato@adrenovar.com.br",
     address: "",
     addressComplement: "",
     mapEmbedUrl: "",
