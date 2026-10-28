@@ -6,8 +6,11 @@
 const DEFAULT_CHANNEL_ID = "UCpnq0C4PXHGSIV2mjNAVrBw";
 const CACHE_TTL_MS = 60 * 1000;
 const REQUEST_TIMEOUT_MS = 8000;
+/** Intervalo mínimo entre atualizações forçadas do mesmo IP (protege a cota). */
+const FORCE_INTERVAL_MS = 5000;
 
 const cache = new Map();
+const forceHits = new Map();
 
 export function normalizeChannelId(value) {
   const input = (value ?? "").trim();
@@ -98,8 +101,27 @@ export async function handleLatestVideoRequest(req, res, env = process.env) {
   const url = new URL(req.url ?? "/", "http://localhost");
   const force = url.searchParams.get("force") === "1";
 
+  let forced = false;
+  if (force) {
+    const forwarded = req.headers["x-forwarded-for"];
+    const first = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+    const ip = (first ?? "").split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
+    const last = forceHits.get(ip) ?? 0;
+
+    if (Date.now() - last > FORCE_INTERVAL_MS) {
+      forceHits.set(ip, Date.now());
+      if (forceHits.size > 500) {
+        const cutoff = Date.now() - FORCE_INTERVAL_MS;
+        for (const [key, at] of forceHits) {
+          if (at < cutoff) forceHits.delete(key);
+        }
+      }
+      forced = true;
+    }
+  }
+
   try {
-    const data = await getLatestVideo(env, { force });
+    const data = await getLatestVideo(env, { force: forced });
     sendJson(res, 200, data, "public, max-age=30");
   } catch (error) {
     console.error("[youtube-api]", error?.code ?? error);

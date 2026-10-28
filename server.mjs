@@ -1,9 +1,11 @@
 /**
- * Servidor de produção: serve o build estático (dist/) e as rotas
- * /api/youtube/latest e /api/contact. As credenciais ficam no ambiente
- * (.env ou hPanel).
+ * Servidor de produção: serve o build estático (dist/) e as rotas de API
+ * (/api/youtube/latest e /api/contact).
  *
- * Uso: npm run build && npm start
+ * Credenciais vêm apenas do ambiente: variáveis do hPanel (Hostinger) ou do
+ * arquivo .env local, que nunca é versionado.
+ *
+ * Uso: pnpm build && pnpm start
  */
 import { createReadStream, existsSync, readFileSync } from "node:fs";
 import { stat } from "node:fs/promises";
@@ -17,6 +19,7 @@ import { handleLatestVideoRequest } from "./server/youtube.mjs";
 const root = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(root, "dist");
 const port = Number(process.env.PORT) || 3000;
+const host = "0.0.0.0";
 
 function parseEnvFile(file) {
   const values = {};
@@ -61,6 +64,15 @@ const mimeTypes = {
   ".webmanifest": "application/manifest+json",
 };
 
+/** Cabeçalhos de segurança aplicados a todas as respostas. */
+function applySecurityHeaders(res) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+}
+
 function cacheControlFor(filePath) {
   if (filePath.endsWith(".html")) return "no-cache";
   if (filePath.includes(`${path.sep}assets${path.sep}`)) {
@@ -69,7 +81,7 @@ function cacheControlFor(filePath) {
   return "public, max-age=3600";
 }
 
-async function serveFile(res, filePath) {
+async function serveFile(req, res, filePath) {
   const info = await stat(filePath);
   if (!info.isFile()) throw new Error("not_a_file");
 
@@ -79,10 +91,28 @@ async function serveFile(res, filePath) {
     mimeTypes[path.extname(filePath).toLowerCase()] ?? "application/octet-stream",
   );
   res.setHeader("Cache-Control", cacheControlFor(filePath));
-  createReadStream(filePath).pipe(res);
+  res.setHeader("Content-Length", info.size);
+
+  if (req.method === "HEAD") {
+    res.end();
+    return;
+  }
+
+  const stream = createReadStream(filePath);
+  stream.on("error", () => res.destroy());
+  stream.pipe(res);
+}
+
+function sendJson(res, status, body) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.end(JSON.stringify(body));
 }
 
 const server = createServer(async (req, res) => {
+  applySecurityHeaders(res);
+
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
 
   if (url.pathname === "/api/youtube/latest") {
@@ -96,14 +126,13 @@ const server = createServer(async (req, res) => {
   }
 
   if (url.pathname.startsWith("/api/")) {
-    res.statusCode = 404;
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.end(JSON.stringify({ error: "not_found" }));
+    sendJson(res, 404, { error: "not_found" });
     return;
   }
 
   if (req.method !== "GET" && req.method !== "HEAD") {
     res.statusCode = 405;
+    res.setHeader("Allow", "GET, HEAD");
     res.end("Method Not Allowed");
     return;
   }
@@ -129,23 +158,28 @@ const server = createServer(async (req, res) => {
   }
 
   try {
-    await serveFile(res, requested);
+    await serveFile(req, res, requested);
     return;
   } catch {
     // Arquivos inexistentes caem no index.html (React Router).
   }
 
   try {
-    await serveFile(res, path.join(distDir, "index.html"));
+    await serveFile(req, res, path.join(distDir, "index.html"));
   } catch {
     res.statusCode = 404;
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.end("Build não encontrado. Rode `npm run build` antes de iniciar.");
+    res.end("Build não encontrado. Rode `pnpm build` antes de iniciar.");
   }
 });
 
-server.listen(port, "0.0.0.0", () => {
-  console.log(`[server] ouvindo em http://0.0.0.0:${port}`);
+server.listen(port, host, () => {
+  console.log(`[server] ouvindo em http://${host}:${port}`);
+  if (!existsSync(path.join(distDir, "index.html"))) {
+    console.warn(
+      "[server] pasta dist/ ausente: rode `pnpm build` antes de iniciar o servidor.",
+    );
+  }
   if (!env.YOUTUBE_API_KEY) {
     console.warn(
       "[youtube] YOUTUBE_API_KEY não configurada: a seção do último vídeo ficará indisponível.",
@@ -157,3 +191,11 @@ server.listen(port, "0.0.0.0", () => {
     );
   }
 });
+
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, () => {
+    console.log(`[server] encerrando (${signal})`);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 5000).unref();
+  });
+}
