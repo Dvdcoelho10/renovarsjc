@@ -6,15 +6,29 @@ import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authenticateAdmin } from "@/lib/admin-auth";
+import { loginAdmin } from "@/lib/admin-session";
+
+const loginErrorMessages: Record<string, string> = {
+  invalid_credentials: "E-mail ou senha incorretos.",
+  rate_limited:
+    "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.",
+  db_not_configured:
+    "O banco de dados ainda não foi configurado no servidor. Fale com quem cuida da hospedagem.",
+  invalid_origin:
+    "Não foi possível validar o pedido. Recarregue a página e tente novamente.",
+  invalid_payload: "Informe um e-mail e uma senha válidos.",
+  network_error:
+    "Não foi possível falar com o servidor. Verifique sua conexão e tente novamente.",
+};
 
 export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
 
@@ -23,12 +37,19 @@ export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
       return;
     }
 
-    if (authenticateAdmin(email, password)) {
+    setPending(true);
+    const result = await loginAdmin(email, password);
+    setPending(false);
+
+    if (result.ok) {
       onSuccess();
       return;
     }
 
-    setError("E-mail ou senha incorretos.");
+    setError(
+      loginErrorMessages[result.error] ??
+        "Não foi possível entrar agora. Tente novamente.",
+    );
   };
 
   return (
@@ -120,8 +141,12 @@ export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
               </p>
             )}
 
-            <Button type="submit" className="mt-1 h-11 rounded-full">
-              Entrar no painel
+            <Button
+              type="submit"
+              disabled={pending}
+              className="mt-1 h-11 rounded-full"
+            >
+              {pending ? "Entrando..." : "Entrar no painel"}
             </Button>
           </form>
         </div>

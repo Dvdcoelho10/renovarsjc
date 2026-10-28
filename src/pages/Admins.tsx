@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  AlertTriangle,
   Download,
   ExternalLink,
   FilePlus2,
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { IdentityForm } from "@/components/admin/IdentityForm";
+import { LegacyContentMigration } from "@/components/admin/LegacyContentMigration";
 import { PagesForm } from "@/components/admin/PagesForm";
 import { YoutubeForm } from "@/components/admin/YoutubeForm";
 import { PageEditorFields } from "@/components/editor/PageEditorFields";
@@ -37,7 +39,8 @@ import {
   defaultContent,
   type SiteContent,
 } from "@/content/site";
-import { endAdminSession, hasAdminSession } from "@/lib/admin-auth";
+import { logoutAdmin } from "@/lib/admin-session";
+import { useAdminSession } from "@/hooks/use-admin-session";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const tabLabels = {
@@ -61,8 +64,20 @@ const sitePages: { label: string; to: string }[] = [
 
 type TabValue = keyof typeof tabLabels;
 
+const saveErrorMessages: Record<string, string> = {
+  unauthorized:
+    "Sua sessão expirou. Entre novamente no painel para publicar as alterações.",
+  db_not_configured:
+    "O servidor está sem banco de dados configurado. Nada foi publicado.",
+  invalid_content: "O conteúdo ficou inválido. Recarregue a página e tente novamente.",
+  payload_too_large:
+    "O conteúdo ficou grande demais (imagens antigas no formato data URL). Envie as fotos novamente.",
+  network_error: "Sem conexão com o servidor. Tente novamente.",
+};
+
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-  const { content, save, reset } = useSiteContent();
+  const { content, save, reset, dbConfigured } = useSiteContent();
+  const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<SiteContent>(() =>
     normalizeContent(content),
   );
@@ -73,6 +88,20 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       : "inicio";
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previousContent = useRef(content);
+
+  // O conteúdo chega do servidor depois da montagem. Se o rascunho ainda for
+  // igual ao conteúdo anterior (ninguém editou), ele acompanha a versão nova;
+  // assim o painel nunca salva por cima com o conteúdo padrão.
+  useEffect(() => {
+    const previous = previousContent.current;
+    previousContent.current = content;
+    setDraft((current) =>
+      JSON.stringify(current) === JSON.stringify(previous)
+        ? normalizeContent(content)
+        : current,
+    );
+  }, [content]);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(content);
 
@@ -84,7 +113,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     })),
   ];
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (draft.events.some((event) => !event.title.trim() || !event.date)) {
       setTab("agenda");
       toast.error("Preencha título e data de todos os encontros antes de salvar.");
@@ -102,29 +131,31 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }
 
     const normalized = normalizeContent(draft);
-    const stored = save(normalized);
-    setDraft(normalized);
+    setSaving(true);
+    const result = await save(normalized);
+    setSaving(false);
 
-    if (stored) {
-      toast.success("Conteúdo salvo neste navegador.");
-    } else {
-      toast.error(
-        "O navegador não tem espaço para salvar. Remova algumas imagens e tente novamente.",
-      );
+    if (!result.ok) {
+      toast.error(saveErrorMessages[result.error ?? ""] ?? "Não foi possível publicar agora.");
+      return;
     }
+
+    setDraft(normalized);
+    toast.success("Conteúdo publicado. As alterações já aparecem no site.");
   };
 
   /** Publica imediatamente uma mudança estrutural (criar/excluir página). */
-  const commitContent = (next: SiteContent) => {
+  const commitContent = async (next: SiteContent) => {
     const normalized = normalizeContent(next);
-    setDraft(normalized);
-    if (save(normalized)) {
-      toast.success("Menu do site atualizado.");
-    } else {
-      toast.error(
-        "O navegador não tem espaço para salvar. Remova algumas imagens e tente novamente.",
-      );
+    const result = await save(normalized);
+
+    if (!result.ok) {
+      toast.error(saveErrorMessages[result.error ?? ""] ?? "Não foi possível publicar agora.");
+      return;
     }
+
+    setDraft(normalized);
+    toast.success("Menu do site atualizado.");
   };
 
   const handleExport = () => {
@@ -149,10 +180,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }
   };
 
-  const handleRestoreDefaults = () => {
-    reset();
+  const handleRestoreDefaults = async () => {
+    const result = await reset();
+    if (!result.ok) {
+      toast.error(saveErrorMessages[result.error ?? ""] ?? "Não foi possível restaurar agora.");
+      return;
+    }
     setDraft(normalizeContent(defaultContent));
-    toast.success("Conteúdo padrão restaurado.");
+    toast.success("Conteúdo padrão publicado no site.");
   };
 
   return (
@@ -263,11 +298,28 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         <div className="mt-6 flex gap-3 rounded-2xl border border-accent/25 bg-accent/[0.06] p-4">
           <Info className="mt-0.5 h-5 w-5 shrink-0 text-accent-deep" aria-hidden="true" />
           <p className="text-sm leading-relaxed text-muted-foreground">
-            As alterações ficam salvas neste navegador até que o banco de dados
-            seja conectado. Use <strong className="font-medium text-foreground">Exportar</strong>{" "}
-            para guardar uma cópia do conteúdo.
+            As alterações são gravadas no banco de dados e passam a valer para
+            todos os visitantes assim que você salva. Use{" "}
+            <strong className="font-medium text-foreground">Exportar</strong> para
+            guardar uma cópia do conteúdo.
           </p>
         </div>
+
+        {!dbConfigured && (
+          <div className="mt-3 flex gap-3 rounded-2xl border border-destructive/30 bg-destructive/[0.06] p-4">
+            <AlertTriangle
+              className="mt-0.5 h-5 w-5 shrink-0 text-destructive"
+              aria-hidden="true"
+            />
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              O servidor não encontrou o banco de dados (<code>DB_*</code>).
+              Nada será publicado até a conexão ser configurada no{" "}
+              <code>.env</code> ou nas variáveis da Hostinger.
+            </p>
+          </div>
+        )}
+
+        <LegacyContentMigration />
 
         <div className="mt-5 rounded-2xl border border-border/80 bg-card p-4">
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -382,7 +434,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         <div className="sticky bottom-4 z-20 mt-6 pb-2">
           <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-[0_20px_40px_-24px_rgba(19,37,74,0.45)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
             <p className="px-2 text-sm text-muted-foreground">
-              {dirty ? "Alterações não salvas" : "Tudo salvo neste navegador"}
+              {dirty ? "Alterações não publicadas" : "Tudo publicado no site"}
             </p>
             <div className="flex gap-2">
               <Button
@@ -397,11 +449,11 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <Button
                 type="button"
                 onClick={handleSave}
-                disabled={!dirty}
+                disabled={!dirty || saving}
                 className="h-11 flex-1 rounded-full sm:flex-none"
               >
                 <Save className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                Salvar alterações
+                {saving ? "Publicando..." : "Salvar alterações"}
               </Button>
             </div>
           </div>
@@ -413,7 +465,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
 const Admins = () => {
   usePageTitle("Painel administrativo");
-  const [authenticated, setAuthenticated] = useState(() => hasAdminSession());
+  const { session, refresh } = useAdminSession();
 
   useEffect(() => {
     const meta = document.createElement("meta");
@@ -425,15 +477,24 @@ const Admins = () => {
     };
   }, []);
 
-  if (!authenticated) {
-    return <AdminLogin onSuccess={() => setAuthenticated(true)} />;
+  if (session.status === "checking") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-primary px-4">
+        <p className="rounded-full bg-card px-5 py-3 text-sm font-medium text-foreground shadow-lg">
+          Verificando acesso…
+        </p>
+      </div>
+    );
+  }
+
+  if (session.status !== "authenticated") {
+    return <AdminLogin onSuccess={() => void refresh(true)} />;
   }
 
   return (
     <AdminDashboard
       onLogout={() => {
-        endAdminSession();
-        setAuthenticated(false);
+        void logoutAdmin().then(() => refresh(true));
       }}
     />
   );

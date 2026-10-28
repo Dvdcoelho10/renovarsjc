@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { optimizeImageFile } from "@/lib/image";
 import { downloadImage } from "@/lib/images-download";
+import { uploadErrorMessages, uploadImage } from "@/lib/media";
 
 type ImageFieldProps = {
   id: string;
@@ -48,8 +49,20 @@ export function ImageField({
     setError("");
     setLoading(true);
     try {
+      // 1. Reduz a imagem no navegador (WebP) e 2. guarda no servidor,
+      // que devolve o endereço público /api/media/{id}.
       const optimized = await optimizeImageFile(file);
-      onChange(optimized);
+      const uploaded = await uploadImage(optimized);
+
+      if (!uploaded.ok) {
+        setError(
+          uploadErrorMessages[uploaded.error] ??
+            "Não foi possível enviar a imagem.",
+        );
+        return;
+      }
+
+      onChange(uploaded.url);
     } catch (uploadError) {
       setError(
         uploadError instanceof Error
@@ -89,7 +102,7 @@ export function ImageField({
             className="rounded-full border-border hover:bg-secondary"
           >
             <ImagePlus className="mr-1.5 h-4 w-4" aria-hidden="true" />
-            {loading ? "Preparando..." : value ? "Trocar imagem" : "Enviar imagem"}
+            {loading ? "Enviando..." : value ? "Trocar imagem" : "Enviar imagem"}
           </Button>
           <Button
             type="button"
@@ -130,7 +143,9 @@ export function ImageField({
           className="h-11 rounded-xl border-border bg-background text-sm"
         />
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Envie uma foto do computador ou cole um link. Formatos JPG, PNG e WebP.
+          Envie uma foto do computador (JPG, PNG ou WebP, até 3 MB) ou cole um
+          link. O arquivo enviado fica guardado no servidor e aparece para todos
+          os visitantes.
         </p>
 
         {error && (

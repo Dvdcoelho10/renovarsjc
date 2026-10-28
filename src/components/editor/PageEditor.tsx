@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/sheet";
 import { normalizeContent, useSiteContent } from "@/content/ContentProvider";
 import type { CustomPage, SiteContent } from "@/content/site";
-import { endAdminSession, hasEditorHint } from "@/lib/admin-auth";
+import { fetchAdminSession, hasAdminHint, logoutAdmin } from "@/lib/admin-session";
 
 const pageByPath: Record<string, EditablePage> = {
   "/": "home",
@@ -39,25 +39,36 @@ const pageLabels: Record<EditablePage, string> = {
 export function PageEditor() {
   const { pathname } = useLocation();
   const { content, save } = useSiteContent();
-  const [isAdmin, setIsAdmin] = useState(() => hasEditorHint());
+  const [isAdmin, setIsAdmin] = useState(() => hasAdminHint());
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<SiteContent>(content);
 
+  // Confirma no servidor se a sessão continua válida (o cookie é HttpOnly).
   useEffect(() => {
-    const syncSession = () => {
-      const active = hasEditorHint();
+    let cancelled = false;
+
+    const syncSession = async (force: boolean) => {
+      const session = await fetchAdminSession({ force });
+      if (cancelled) return;
+      const active = session.status === "authenticated";
       setIsAdmin(active);
       if (!active) setOpen(false);
     };
 
-    window.addEventListener("focus", syncSession);
-    window.addEventListener("storage", syncSession);
-    document.addEventListener("visibilitychange", syncSession);
+    void syncSession(false);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void syncSession(true);
+    };
+
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
 
     return () => {
-      window.removeEventListener("focus", syncSession);
-      window.removeEventListener("storage", syncSession);
-      document.removeEventListener("visibilitychange", syncSession);
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
     };
   }, []);
 
@@ -92,14 +103,14 @@ export function PageEditor() {
       ),
     }));
 
-  const handleExit = () => {
-    endAdminSession();
+  const handleExit = async () => {
+    await logoutAdmin();
     setOpen(false);
     setIsAdmin(false);
     toast.success("Modo administrador encerrado.");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (draft.events.some((event) => !event.title.trim() || !event.date)) {
       toast.error("Preencha título e data de todos os encontros antes de salvar.");
       return;
@@ -113,15 +124,21 @@ export function PageEditor() {
       return;
     }
 
-    const stored = save(normalizeContent(draft));
-    if (!stored) {
+    setSaving(true);
+    const result = await save(normalizeContent(draft));
+    setSaving(false);
+
+    if (!result.ok) {
+      setIsAdmin(result.error !== "unauthorized");
       toast.error(
-        "Não foi possível salvar. O armazenamento deste navegador pode estar cheio — reduza o tamanho das imagens.",
+        result.error === "unauthorized"
+          ? "Sua sessão expirou. Entre novamente no painel."
+          : "Não foi possível publicar agora. Tente novamente em instantes.",
       );
       return;
     }
 
-    toast.success(`Página “${pageLabel}” atualizada.`);
+    toast.success(`Página “${pageLabel}” publicada.`);
     setOpen(false);
   };
 
@@ -226,10 +243,11 @@ export function PageEditor() {
               <Button
                 type="button"
                 onClick={handleSave}
+                disabled={saving}
                 className="h-10 rounded-full px-5"
               >
                 <Save className="mr-2 h-4 w-4" aria-hidden="true" />
-                Salvar página
+                {saving ? "Publicando..." : "Salvar página"}
               </Button>
             </div>
           </div>

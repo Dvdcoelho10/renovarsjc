@@ -12,7 +12,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "admin:create": "node scripts/create-admin.mjs",
+    "check:setup": "node scripts/check-setup.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -51,6 +53,7 @@
     "embla-carousel-react": "^8.3.0",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
+    "mysql2": "^3.24.6",
     "next-themes": "^0.3.0",
     "react": "^19.2.3",
     "react-day-picker": "^9.13.0",

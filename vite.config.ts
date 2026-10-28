@@ -11,22 +11,70 @@ type ApiHandler = (
   env: Record<string, string | undefined>,
 ) => Promise<void>;
 
+type ApiRoute = {
+  /** Caminho exato ou prefixo (quando `prefix` é true). */
+  path: string;
+  module: string;
+  handler: string;
+  prefix?: boolean;
+};
+
 /** Rotas de servidor servidas em desenvolvimento pelo Vite. */
-const apiRoutes: Record<string, { module: string; handler: string }> = {
-  "/api/youtube/latest": {
+const apiRoutes: ApiRoute[] = [
+  {
+    path: "/api/youtube/latest",
     module: "server/youtube.mjs",
     handler: "handleLatestVideoRequest",
   },
-  "/api/contact": {
-    module: "server/contact.mjs",
-    handler: "handleContactRequest",
+  { path: "/api/contact", module: "server/contact.mjs", handler: "handleContactRequest" },
+  {
+    path: "/api/admin/login",
+    module: "server/admin-api.mjs",
+    handler: "handleAdminLoginRequest",
   },
-};
+  {
+    path: "/api/admin/logout",
+    module: "server/admin-api.mjs",
+    handler: "handleAdminLogoutRequest",
+  },
+  {
+    path: "/api/admin/session",
+    module: "server/admin-api.mjs",
+    handler: "handleAdminSessionRequest",
+  },
+  {
+    path: "/api/content",
+    module: "server/content-api.mjs",
+    handler: "handleContentGetRequest",
+  },
+  {
+    path: "/api/admin/content",
+    module: "server/content-api.mjs",
+    handler: "handleContentPutRequest",
+  },
+  {
+    path: "/api/admin/media",
+    module: "server/media-api.mjs",
+    handler: "handleMediaUploadRequest",
+  },
+  {
+    path: "/api/media/",
+    module: "server/media-api.mjs",
+    handler: "handleMediaRequest",
+    prefix: true,
+  },
+];
+
+function findRoute(pathname: string) {
+  const exact = apiRoutes.find((route) => !route.prefix && route.path === pathname);
+  if (exact) return exact;
+  return apiRoutes.find((route) => route.prefix && pathname.startsWith(route.path));
+}
 
 /**
  * Em desenvolvimento o Vite serve as mesmas rotas de API do servidor de
- * produção (pasta server/), lendo as credenciais do .env. Chaves de YouTube e
- * senha do SMTP nunca vão para o bundle do cliente.
+ * produção (pasta server/), lendo as credenciais do .env. Chaves de YouTube,
+ * senha do SMTP e credenciais do banco nunca vão para o bundle do cliente.
  */
 function siteApiPlugin(env: Record<string, string>): Plugin {
   return {
@@ -34,8 +82,8 @@ function siteApiPlugin(env: Record<string, string>): Plugin {
     apply: "serve",
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        const pathname = (req.url ?? "").split("?")[0].replace(/\/+$/, "");
-        const route = apiRoutes[pathname];
+        const pathname = (req.url ?? "").split("?")[0];
+        const route = findRoute(pathname);
 
         if (!route) {
           next();

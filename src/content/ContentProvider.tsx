@@ -24,6 +24,10 @@ import {
   type YoutubeCopy,
 } from "@/content/site";
 
+/**
+ * Chave antiga da versão que salvava no navegador. O conteúdo publicado agora
+ * vem de /api/content (MySQL); esta chave só existe para a migração assistida.
+ */
 const STORAGE_KEY = "adr-site-content-v1";
 
 function clone<T>(value: T): T {
@@ -372,50 +376,146 @@ export function normalizeContent(raw: unknown): SiteContent {
   };
 }
 
+export type SaveResult = { ok: boolean; error?: string };
+
 type ContentContextValue = {
   content: SiteContent;
-  /** Retorna false quando o navegador não conseguiu armazenar o conteúdo. */
-  save: (next: SiteContent) => boolean;
-  reset: () => void;
+  /** "ready" depois da primeira consulta ao servidor. */
+  status: "loading" | "ready";
+  /** false quando o servidor respondeu que o banco ainda não está configurado. */
+  dbConfigured: boolean;
+  save: (next: SiteContent) => Promise<SaveResult>;
+  reset: () => Promise<SaveResult>;
+  reload: () => Promise<void>;
 };
 
 const ContentContext = createContext<ContentContextValue | null>(null);
 
-function loadStoredContent(): SiteContent {
-  if (typeof window === "undefined") return clone(defaultContent);
+const CACHE_KEY = "adr-content-cache-v2";
+const CONTENT_ENDPOINT = "/api/content";
+const ADMIN_CONTENT_ENDPOINT = "/api/admin/content";
+
+function readCache(): SiteContent | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    return normalizeContent(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(next: SiteContent) {
+  try {
+    window.sessionStorage.setItem(CACHE_KEY, JSON.stringify(next));
+  } catch {
+    // Cache é opcional: só evita piscar o conteúdo padrão ao trocar de página.
+  }
+}
+
+/** Conteúdo antigo salvo no navegador pela versão que usava localStorage. */
+export function readLegacyContent(): SiteContent | null {
+  if (typeof window === "undefined") return null;
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return clone(defaultContent);
+    if (!raw) return null;
     return normalizeContent(JSON.parse(raw));
   } catch {
-    return clone(defaultContent);
+    return null;
+  }
+}
+
+export function hasLegacyContent() {
+  if (typeof window === "undefined") return false;
+  try {
+    return Boolean(window.localStorage.getItem(STORAGE_KEY));
+  } catch {
+    return false;
+  }
+}
+
+export function clearLegacyContent() {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Ignora falhas de armazenamento.
   }
 }
 
 export function ContentProvider({ children }: { children: ReactNode }) {
-  const [content, setContent] = useState<SiteContent>(loadStoredContent);
+  const [content, setContent] = useState<SiteContent>(
+    () => readCache() ?? clone(defaultContent),
+  );
+  const [status, setStatus] = useState<"loading" | "ready">("loading");
+  const [dbConfigured, setDbConfigured] = useState(true);
 
-  const save = useCallback((next: SiteContent) => {
-    const normalized = normalizeContent(next);
-    let stored = true;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-    } catch {
-      stored = false;
-    }
-    setContent(normalized);
-    return stored;
+  const applyContent = useCallback((next: SiteContent) => {
+    setContent(next);
+    writeCache(next);
   }, []);
 
-  const reset = useCallback(() => {
+  const reload = useCallback(async () => {
     try {
-      window.localStorage.removeItem(STORAGE_KEY);
+      const response = await fetch(CONTENT_ENDPOINT, {
+        headers: { Accept: "application/json" },
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        content?: unknown;
+        error?: string;
+      };
+
+      setDbConfigured(data?.error !== "db_not_configured");
+      if (data?.content) applyContent(normalizeContent(data.content));
     } catch {
-      // Ignora falhas de armazenamento.
+      // Sem servidor: mantém o conteúdo padrão ou o cache desta aba.
+    } finally {
+      setStatus("ready");
     }
-    setContent(clone(defaultContent));
-  }, []);
+  }, [applyContent]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  const save = useCallback(
+    async (next: SiteContent): Promise<SaveResult> => {
+      const normalized = normalizeContent(next);
+
+      try {
+        const response = await fetch(ADMIN_CONTENT_ENDPOINT, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ content: normalized }),
+        });
+        const data = (await response.json().catch(() => ({}))) as {
+          ok?: boolean;
+          error?: string;
+        };
+
+        if (!response.ok || !data?.ok) {
+          return {
+            ok: false,
+            error: typeof data?.error === "string" ? data.error : "save_failed",
+          };
+        }
+
+        applyContent(normalized);
+        return { ok: true };
+      } catch {
+        return { ok: false, error: "network_error" };
+      }
+    },
+    [applyContent],
+  );
+
+  const reset = useCallback(
+    () => save(clone(defaultContent)),
+    [save],
+  );
 
   // Mantém o favicon alinhado com a logo escolhida no painel.
   useEffect(() => {
@@ -430,8 +530,8 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   }, [content.church.logoUrl]);
 
   const value = useMemo(
-    () => ({ content, save, reset }),
-    [content, save, reset],
+    () => ({ content, status, dbConfigured, save, reset, reload }),
+    [content, status, dbConfigured, save, reset, reload],
   );
 
   return (

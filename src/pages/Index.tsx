@@ -8,13 +8,14 @@ import { AreasGrid } from "@/components/site/AreasGrid";
 import { InvitePanel } from "@/components/site/InvitePanel";
 import { LatestVideoSection } from "@/components/site/LatestVideoSection";
 import { useSiteContent } from "@/content/ContentProvider";
-import { hasEditorHint } from "@/lib/admin-auth";
+import { useAdminSession } from "@/hooks/use-admin-session";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const Index = () => {
   usePageTitle();
   const { content } = useSiteContent();
   const { church, home, highlights, images, youtube, giving } = content;
+  const { session } = useAdminSession();
 
   const facts = [
     { label: "Fundação", value: church.foundedAt },
@@ -99,7 +100,7 @@ const Index = () => {
           >
             <EmblemPanel className="aspect-[4/5]" imageUrl={images.homeHero} />
 
-            {hasEditorHint() && (
+            {session.status === "authenticated" && (
               <Link
                 to="/admins?tab=inicio"
                 className="absolute right-3 top-3 z-10 inline-flex items-center gap-2 rounded-full bg-background/95 px-3 py-2 text-xs font-medium text-foreground shadow-lg backdrop-blur transition-colors hover:bg-background"

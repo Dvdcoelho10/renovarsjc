@@ -1,19 +1,28 @@
 /**
  * Servidor de produção: serve o build estático (dist/) e as rotas de API
- * (/api/youtube/latest e /api/contact).
+ * (/api/youtube/latest, /api/contact e /api/admin/*).
  *
  * Credenciais vêm apenas do ambiente: variáveis do hPanel (Hostinger) ou do
  * arquivo .env local, que nunca é versionado.
  *
  * Uso: pnpm build && pnpm start
  */
-import { createReadStream, existsSync, readFileSync } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  handleAdminLoginRequest,
+  handleAdminLogoutRequest,
+  handleAdminSessionRequest,
+} from "./server/admin-api.mjs";
 import { handleContactRequest } from "./server/contact.mjs";
+import { handleContentGetRequest, handleContentPutRequest } from "./server/content-api.mjs";
+import { isDbConfigured } from "./server/db.mjs";
+import { loadServerEnv } from "./server/env.mjs";
+import { handleMediaRequest, handleMediaUploadRequest } from "./server/media-api.mjs";
 import { handleLatestVideoRequest } from "./server/youtube.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -21,28 +30,7 @@ const distDir = path.join(root, "dist");
 const port = Number(process.env.PORT) || 3000;
 const host = "0.0.0.0";
 
-function parseEnvFile(file) {
-  const values = {};
-  if (!existsSync(file)) return values;
-
-  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
-    const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)\s*$/);
-    if (!match) continue;
-
-    let value = match[2].trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    values[match[1]] = value;
-  }
-
-  return values;
-}
-
-const env = { ...parseEnvFile(path.join(root, ".env")), ...process.env };
+const env = loadServerEnv(root);
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -125,6 +113,41 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname === "/api/admin/login") {
+    await handleAdminLoginRequest(req, res, env);
+    return;
+  }
+
+  if (url.pathname === "/api/admin/logout") {
+    await handleAdminLogoutRequest(req, res, env);
+    return;
+  }
+
+  if (url.pathname === "/api/admin/session") {
+    await handleAdminSessionRequest(req, res, env);
+    return;
+  }
+
+  if (url.pathname === "/api/content") {
+    await handleContentGetRequest(req, res, env);
+    return;
+  }
+
+  if (url.pathname === "/api/admin/content") {
+    await handleContentPutRequest(req, res, env);
+    return;
+  }
+
+  if (url.pathname === "/api/admin/media") {
+    await handleMediaUploadRequest(req, res, env);
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/media/")) {
+    await handleMediaRequest(req, res, env);
+    return;
+  }
+
   if (url.pathname.startsWith("/api/")) {
     sendJson(res, 404, { error: "not_found" });
     return;
@@ -188,6 +211,11 @@ server.listen(port, host, () => {
   if (!env.SMTP_PASSWORD) {
     console.warn(
       "[contato] SMTP_PASSWORD não configurada: o formulário de contato não envia e-mails.",
+    );
+  }
+  if (!isDbConfigured(env)) {
+    console.warn(
+      "[admin] DB_* não configuradas: o painel usa o conteúdo local e não salva no banco.",
     );
   }
 });
