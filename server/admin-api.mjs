@@ -63,11 +63,12 @@ function headerValue(req, name) {
 
 /** Bloqueia escritas feitas por outros sites (CSRF), exigindo mesma origem. */
 export function isSameOrigin(req) {
-  const origin = headerValue(req, "origin");
+  // O navegador define Sec-Fetch-Site; requisição de outro site nunca manda
+  // "same-origin". Isso evita falso bloqueio atrás de proxy que reescreve Host.
+  if (headerValue(req, "sec-fetch-site") === "same-origin") return true;
 
-  // Navegadores modernos informam a origem; quando ela não vem, usamos o
-  // cabeçalho Sec-Fetch-Site para não quebrar clientes legítimos.
-  if (!origin) return headerValue(req, "sec-fetch-site") === "same-origin";
+  const origin = headerValue(req, "origin");
+  if (!origin) return false;
 
   try {
     const originHost = new URL(origin).host;
