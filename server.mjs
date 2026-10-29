@@ -22,6 +22,7 @@ import { handleContactRequest } from "./server/contact.mjs";
 import { handleContentGetRequest, handleContentPutRequest } from "./server/content-api.mjs";
 import { isDbConfigured } from "./server/db.mjs";
 import { loadServerEnv } from "./server/env.mjs";
+import { handleHealthRequest } from "./server/health.mjs";
 import { handleMediaRequest, handleMediaUploadRequest } from "./server/media-api.mjs";
 import { handleLatestVideoRequest } from "./server/youtube.mjs";
 
@@ -102,6 +103,11 @@ const server = createServer(async (req, res) => {
   applySecurityHeaders(res);
 
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+
+  if (url.pathname === "/api/health") {
+    await handleHealthRequest(req, res, env);
+    return;
+  }
 
   if (url.pathname === "/api/youtube/latest") {
     await handleLatestVideoRequest(req, res, env);

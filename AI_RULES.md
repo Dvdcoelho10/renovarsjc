@@ -41,7 +41,7 @@ Available packages and libraries:
 
 # Servidor e hospedagem
 
-- `pnpm build` gera `dist/`; `pnpm start` (`node server.mjs`) serve o build e as rotas `/api/youtube/latest`, `/api/contact`, `/api/content`, `/api/media/{id}` e `/api/admin/*`. Requer runtime Node.js (Hostinger VPS/Cloud). Hospedagem apenas estática/PHP não executa as APIs. `node scripts/check-setup.mjs` diagnostica env/banco/tabelas/administrador sem alterar nada.
+- `pnpm build` gera `dist/`; `pnpm start` (`node server.mjs`) serve o build e as rotas `/api/health` (diagnóstico de deploy, sem segredos), `/api/youtube/latest`, `/api/contact`, `/api/content`, `/api/media/{id}` e `/api/admin/*`. Só o `server.mjs` devolve `index.html` em rotas do React Router (sem ele, `/admins` recarregado dá 404 do host). Requer runtime Node.js (Hostinger VPS/Cloud). Hospedagem apenas estática/PHP não executa as APIs. `node scripts/check-setup.mjs` diagnostica env/banco/tabelas/administrador sem alterar nada.
 - Segredos somente em `.env` (ignorado pelo git) ou nas variáveis de ambiente da Hostinger. Nunca usar prefixo `VITE_` em segredos — esse prefixo injeta o valor no bundle do cliente.
 - Banco oficial: MySQL/MariaDB na Hostinger (phpMyAdmin). Migrações versionadas em `database/migrations/` (não destrutivas, rodadas manualmente — nunca no boot), acesso em `server/db.mjs` com pool e queries parametrizadas. Credenciais (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`) ficam exclusivamente no `.env` ou nas variáveis da Hostinger e são lidas apenas por código de servidor. Nunca em `src/`, nunca no cliente e nunca com prefixo `VITE_`. Não usar Neon/Supabase.
 - Rodapé: crédito "Desenvolvido por Nusaas" (substituiu a nota sobre o estatuto).

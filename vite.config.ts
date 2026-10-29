@@ -21,6 +21,7 @@ type ApiRoute = {
 
 /** Rotas de servidor servidas em desenvolvimento pelo Vite. */
 const apiRoutes: ApiRoute[] = [
+  { path: "/api/health", module: "server/health.mjs", handler: "handleHealthRequest" },
   {
     path: "/api/youtube/latest",
     module: "server/youtube.mjs",

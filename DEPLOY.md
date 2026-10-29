@@ -135,6 +135,29 @@ por e-mail/IP em 15 minutos, respondem `429 rate_limited`.
 
 ## 5. Diagnóstico rápido
 
+### 5.1 “`/admins` não abre” — identificar a camada
+
+Comece abrindo `https://SEU-DOMINIO/api/health` no navegador. A resposta diz qual camada
+está com problema:
+
+| O que aparece em `/api/health` | Significado | O que fazer |
+| --- | --- | --- |
+| JSON com `"features": {"adminSession": true, ...}` | servidor Node atual está no ar | olhe `db`: se `configured:false`, faltam `DB_*`; se `tables:"missing"`, aplique a migração 001 |
+| JSON com 404 `{"error":"not_found"}` | servidor Node rodando, mas **código antigo** | publicar o commit atual do `main` |
+| HTML (a própria página do site) | a requisição caiu no `index.html`: rota de API não existe no código publicado | publicar o commit atual |
+| 404/403/lista de arquivos do host, ou tela da Hostinger | quem responde não é o `server.mjs` (site estático ou app não iniciado) | conferir seção 2: tipo Node.js, start `pnpm start`, arquivo `server.mjs`, porta `PORT` |
+
+Depois disso, `/admins`:
+
+- mostra a tela **“Painel administrativo” com e-mail e senha** → está funcionando; o login só
+  falha se o administrador não existir (`pnpm admin:create`) ou se `DB_*` estiver errado;
+- mostra a página **“Página não encontrada”** do site → o servidor está certo, mas o bundle
+  publicado é antigo (não tem a rota `/admins`): falta publicar o commit atual;
+- devolve **404 do host** ao recarregar `/admins` → o `server.mjs` não está atendendo; só ele
+  devolve `index.html` para rotas do React Router.
+
+### 5.2 Tabela geral
+
 | Sintoma | Causa provável |
 | --- | --- |
 | “Build não encontrado. Rode `pnpm build`” | build não executado antes do start |
