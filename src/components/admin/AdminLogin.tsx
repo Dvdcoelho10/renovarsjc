@@ -203,6 +203,10 @@ type HealthResponse = {
     tables?: string;
     missingTables?: string[];
     error?: string;
+    /** Só aparece rodando em desenvolvimento (host:porta/banco). */
+    target?: string;
+    user?: string;
+    passwordSet?: boolean;
   };
   smtpConfigured?: boolean;
   youtubeConfigured?: boolean;
@@ -274,6 +278,15 @@ function ServerDiagnostics() {
       value: db?.configured ? "sim" : "não (faltam variáveis DB_*)",
       ok: Boolean(db?.configured),
     });
+    if (db?.target) {
+      rows.push({
+        label: "Destino (dev)",
+        value: `${db.target} · ${db.user || "?"} · senha ${
+          db.passwordSet ? "definida" : "vazia"
+        }`,
+        ok: true,
+      });
+    }
     rows.push({
       label: "Conexão com o banco",
       value: db?.connected

@@ -10,7 +10,7 @@
  * Se esta rota devolver HTML (ou 404 do host), o processo Node não está
  * atendendo o domínio — ver DEPLOY.md, seção “/admins não abre”.
  */
-import { isDbConfigured, query } from "./db.mjs";
+import { isDbConfigured, query, readDbConfig } from "./db.mjs";
 
 const REQUIRED_TABLES = [
   "site_content",
@@ -23,9 +23,23 @@ const REQUIRED_TABLES = [
 const CACHE_MS = 30 * 1000;
 let cache = { at: 0, body: null };
 
-async function inspectDatabase(env) {
+/**
+ * `exposeDbTarget` só é usado pelo servidor de desenvolvimento (vite.config.ts),
+ * para o painel mostrar a qual host/banco ele está tentando conectar sem sair
+ * do navegador. Em produção o destino continua oculto.
+ */
+async function inspectDatabase(env, { exposeDbTarget = false } = {}) {
+  const config = readDbConfig(env);
+  const target = exposeDbTarget
+    ? {
+        target: `${config.host}:${config.port}/${config.database}`,
+        user: config.user,
+        passwordSet: Boolean(config.password),
+      }
+    : {};
+
   if (!isDbConfigured(env)) {
-    return { configured: false, connected: false, tables: "not_configured" };
+    return { configured: false, connected: false, tables: "not_configured", ...target };
   }
 
   try {
@@ -43,6 +57,7 @@ async function inspectDatabase(env) {
       connected: true,
       tables: missing.length === 0 ? "ready" : "missing",
       missingTables: missing,
+      ...target,
     };
   } catch (error) {
     return {
@@ -50,11 +65,12 @@ async function inspectDatabase(env) {
       connected: false,
       tables: "unknown",
       error: String(error?.code ?? "db_error"),
+      ...target,
     };
   }
 }
 
-export async function handleHealthRequest(req, res, env) {
+export async function handleHealthRequest(req, res, env, options = {}) {
   if (req.method !== "GET" && req.method !== "HEAD") {
     res.statusCode = 405;
     res.setHeader("Allow", "GET, HEAD");
@@ -81,7 +97,7 @@ export async function handleHealthRequest(req, res, env) {
       sharedContent: true,
       mediaStorage: true,
     },
-    db: await inspectDatabase(env),
+    db: await inspectDatabase(env, options),
     smtpConfigured: Boolean(env.SMTP_PASSWORD),
     youtubeConfigured: Boolean(env.YOUTUBE_API_KEY),
     checkedAt: new Date().toISOString(),

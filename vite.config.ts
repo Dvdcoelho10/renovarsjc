@@ -100,7 +100,14 @@ function siteApiPlugin(env: Record<string, string>): Plugin {
               string,
               ApiHandler
             >;
-            await mod[route.handler](req, res, { ...env, ...process.env });
+            // `exposeDbTarget` só vale em desenvolvimento: o /api/health local
+            // mostra host/banco/usuário (nunca a senha) para facilitar o setup.
+            await mod[route.handler](
+              req,
+              res,
+              { ...env, ...process.env },
+              { exposeDbTarget: true },
+            );
           } catch (error) {
             console.error(`[site-api] falha em ${pathname}`, error);
             res.statusCode = 500;
