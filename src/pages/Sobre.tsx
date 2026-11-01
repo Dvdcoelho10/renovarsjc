@@ -1,18 +1,22 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, BookOpen, Info } from "lucide-react";
+import { ArrowUpRight, BookOpen, FileText, Info } from "lucide-react";
 
 import { PageHeader } from "@/components/site/PageHeader";
 import { SectionHeading } from "@/components/site/SectionHeading";
 import { AreasGrid } from "@/components/site/AreasGrid";
+import { CreedSection } from "@/components/site/CreedSection";
 import { InvitePanel } from "@/components/site/InvitePanel";
+import { MinistriesSection } from "@/components/site/MinistriesSection";
+import { PastorsSection } from "@/components/site/PastorsSection";
 import { BibleFlame } from "@/components/brand/Graphics";
+import { Button } from "@/components/ui/button";
 import { useSiteContent } from "@/content/ContentProvider";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const Sobre = () => {
   usePageTitle("Sobre a igreja");
   const { content } = useSiteContent();
-  const { church, about, images } = content;
+  const { church, about, images, history, links } = content;
 
   const institutionalData = [
     { label: "Nome", value: church.name },
@@ -98,6 +102,50 @@ const Sobre = () => {
                 Finalidade da igreja, conforme o estatuto.
               </footer>
             </blockquote>
+
+            <h3 className="mt-10 font-serif text-xl leading-snug sm:text-[1.4rem]">
+              {about.missionTitle}
+            </h3>
+            <p className="mt-3 max-w-xl text-[1.02rem] leading-relaxed text-muted-foreground">
+              {about.missionBody}
+            </p>
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              {about.missionNationsNote}
+            </p>
+
+            {(links.nationsUrl || links.bibleUrl) && (
+              <div className="mt-5 flex flex-wrap gap-3">
+                {links.nationsUrl && (
+                  <Button asChild className="h-11 rounded-full px-5">
+                    <a
+                      href={links.nationsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {links.nationsLabel || "Renovar Nações"}
+                      <ArrowUpRight className="ml-1.5 h-4 w-4" aria-hidden="true" />
+                    </a>
+                  </Button>
+                )}
+
+                {links.bibleUrl && (
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="h-11 rounded-full border-border px-5 hover:bg-card"
+                  >
+                    <a
+                      href={links.bibleUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {links.bibleLabel || "Ler a Bíblia on-line"}
+                      <ArrowUpRight className="ml-1.5 h-4 w-4" aria-hidden="true" />
+                    </a>
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="mx-auto w-full max-w-sm rounded-[2rem] bg-card p-6 sm:p-8">
@@ -119,26 +167,30 @@ const Sobre = () => {
       <section className="container py-16 sm:py-20">
         <SectionHeading
           eyebrow="Nossa história"
-          title="O começo, em 2013"
-          description="A história da igreja começa na fundação e segue sendo construída pelas pessoas que dela participam."
+          title={about.historyTitle}
+          description={about.historyDescription}
         />
 
         <ol className="mt-10 max-w-2xl space-y-8 border-l border-border pl-6 sm:pl-8">
-          <li className="relative">
-            <span
-              aria-hidden="true"
-              className="absolute -left-[1.92rem] top-1.5 h-3 w-3 rounded-full border-2 border-background bg-accent sm:-left-[2.42rem]"
-            />
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              {church.foundedAt}
-            </p>
-            <h3 className="mt-2 text-xl">Fundação da igreja</h3>
-            <p className="mt-2 text-[0.98rem] leading-relaxed text-muted-foreground">
-              Em {church.city}, {church.state}, a Igreja Assembleia de Deus
-              Renovar é constituída como associação sem fins lucrativos, com a
-              finalidade de proclamar o Evangelho de Jesus Cristo.
-            </p>
-          </li>
+          {history.map((milestone) => (
+            <li key={milestone.id} className="relative">
+              <span
+                aria-hidden="true"
+                className="absolute -left-[1.92rem] top-1.5 h-3 w-3 rounded-full border-2 border-background bg-accent sm:-left-[2.42rem]"
+              />
+              {milestone.year && (
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  {milestone.year}
+                </p>
+              )}
+              <h3 className="mt-2 text-xl">{milestone.title}</h3>
+              {milestone.description && (
+                <p className="mt-2 text-[0.98rem] leading-relaxed text-muted-foreground">
+                  {milestone.description}
+                </p>
+              )}
+            </li>
+          ))}
         </ol>
 
         <p className="mt-8 max-w-2xl text-sm leading-relaxed text-muted-foreground">
@@ -146,6 +198,15 @@ const Sobre = () => {
           informados pela liderança.
         </p>
       </section>
+
+      {/* Pastores */}
+      <PastorsSection />
+
+      {/* Ministérios e líderes */}
+      <MinistriesSection />
+
+      {/* Nosso Cremos */}
+      <CreedSection />
 
       {/* Áreas previstas */}
       <section className="border-y border-border/70 bg-secondary/35 py-16 sm:py-20">
@@ -168,8 +229,45 @@ const Sobre = () => {
         </div>
       </section>
 
-      {/* Nota sobre o conteúdo */}
+      {/* Nosso estatuto */}
       <section className="container py-16 sm:py-20">
+        <div className="max-w-3xl">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-accent-deep">
+            {about.statuteEyebrow}
+          </p>
+          <h2 className="mt-3 text-[1.75rem] leading-tight sm:text-4xl">
+            {about.statuteTitle}
+          </h2>
+
+          <div className="mt-5 space-y-4 text-[1.02rem] leading-relaxed text-muted-foreground">
+            {about.statuteSummary.map((paragraph, index) => (
+              <p key={index}>{paragraph}</p>
+            ))}
+          </div>
+
+          <div className="mt-6 flex gap-4 rounded-2xl border border-border/70 bg-card p-5">
+            <FileText
+              className="mt-0.5 h-5 w-5 shrink-0 text-accent-deep"
+              strokeWidth={1.7}
+              aria-hidden="true"
+            />
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {about.statuteNote}
+            </p>
+          </div>
+
+          <Link
+            to="/contato"
+            className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Falar com a liderança
+            <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Nota sobre o conteúdo */}
+      <section className="container pb-16 sm:pb-20">
         <div className="max-w-3xl rounded-[1.75rem] border border-border/80 bg-card p-6 sm:p-8">
           <h2 className="text-lg">Sobre as informações desta página</h2>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">

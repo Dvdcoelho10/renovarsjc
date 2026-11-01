@@ -16,8 +16,10 @@ import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { IdentityForm } from "@/components/admin/IdentityForm";
+import { InstitutionalForm } from "@/components/admin/InstitutionalForm";
 import { LegacyContentMigration } from "@/components/admin/LegacyContentMigration";
 import { PagesForm } from "@/components/admin/PagesForm";
+import { WeeklyScheduleForm } from "@/components/admin/WeeklyScheduleForm";
 import { YoutubeForm } from "@/components/admin/YoutubeForm";
 import { PageEditorFields } from "@/components/editor/PageEditorFields";
 import {
@@ -366,10 +368,24 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <PageEditorFields page="home" draft={draft} onChange={setDraft} />
             </TabsContent>
             <TabsContent value="sobre" className="mt-0">
-              <PageEditorFields page="about" draft={draft} onChange={setDraft} />
+              <div className="grid gap-5">
+                <PageEditorFields
+                  page="about"
+                  draft={draft}
+                  onChange={setDraft}
+                />
+                <InstitutionalForm content={draft} onChange={setDraft} />
+              </div>
             </TabsContent>
             <TabsContent value="agenda" className="mt-0">
-              <PageEditorFields page="agenda" draft={draft} onChange={setDraft} />
+              <div className="grid gap-5">
+                <PageEditorFields
+                  page="agenda"
+                  draft={draft}
+                  onChange={setDraft}
+                />
+                <WeeklyScheduleForm content={draft} onChange={setDraft} />
+              </div>
             </TabsContent>
             <TabsContent value="mensagens" className="mt-0">
               <PageEditorFields

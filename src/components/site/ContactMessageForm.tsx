@@ -5,8 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+
+const CONTACT_KINDS = [
+  { value: "mensagem", label: "Mensagem" },
+  { value: "oracao", label: "Pedido de oração" },
+] as const;
 
 const EMPTY_FORM = {
+  kind: "mensagem",
   name: "",
   email: "",
   phone: "",
@@ -56,6 +63,7 @@ export function ContactMessageForm({ recipient }: { recipient: string }) {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
+  const isPrayer = form.kind === "oracao";
 
   const setField = (key: keyof FormState, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -105,13 +113,15 @@ export function ContactMessageForm({ recipient }: { recipient: string }) {
   return (
     <div className="rounded-[2rem] border border-border/80 bg-card p-6 shadow-[0_24px_50px_-40px_rgba(19,37,74,0.5)] sm:p-8">
       <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-accent-deep">
-        Mensagem direta
+        {isPrayer ? "Pedido de oração" : "Mensagem direta"}
       </p>
       <h2 className="mt-3 text-[1.5rem] leading-snug sm:text-2xl">
-        Envie sua mensagem para a igreja
+        {isPrayer
+          ? "Compartilhe seu pedido de oração"
+          : "Envie sua mensagem para a igreja"}
       </h2>
       <p className="mt-2 text-[0.95rem] leading-relaxed text-muted-foreground">
-        Sua mensagem vai direto para{" "}
+        {isPrayer ? "Seu pedido" : "Sua mensagem"} vai direto para{" "}
         <strong className="font-medium text-foreground">{recipient}</strong>.
         Responderemos pelo e-mail informado.
       </p>
@@ -126,11 +136,13 @@ export function ContactMessageForm({ recipient }: { recipient: string }) {
             <CheckCircle2 className="h-6 w-6" strokeWidth={1.7} aria-hidden="true" />
           </span>
           <p className="mt-4 font-serif text-lg text-foreground">
-            Mensagem enviada!
+            {isPrayer ? "Pedido enviado!" : "Mensagem enviada!"}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Recebemos o seu contato e vamos responder pelo e-mail informado. Se
-            precisar complementar algo, escreva para {recipient}.
+            {isPrayer
+              ? "Recebemos o seu pedido de oração. Se precisar complementar algo, escreva para "
+              : "Recebemos o seu contato e vamos responder pelo e-mail informado. Se precisar complementar algo, escreva para "}
+            {recipient}.
           </p>
           <Button
             type="button"
@@ -138,11 +150,43 @@ export function ContactMessageForm({ recipient }: { recipient: string }) {
             onClick={() => setStatus("idle")}
             className="mt-5 h-10 rounded-full border-border px-5 hover:bg-card"
           >
-            Enviar outra mensagem
+            {isPrayer ? "Enviar outro pedido" : "Enviar outra mensagem"}
           </Button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="mt-6 grid gap-4" noValidate>
+          <div className="grid gap-2">
+            <span className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Tipo de contato
+            </span>
+            <div
+              role="radiogroup"
+              aria-label="Tipo de contato"
+              className="flex flex-wrap gap-2"
+            >
+              {CONTACT_KINDS.map((option) => {
+                const active = form.kind === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setField("kind", option.value)}
+                    className={cn(
+                      "rounded-full border px-4 py-2 text-sm transition-colors",
+                      active
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-foreground hover:border-primary/40",
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label
@@ -245,7 +289,11 @@ export function ContactMessageForm({ recipient }: { recipient: string }) {
                 fieldErrors.message ? "contact-message-error" : undefined
               }
               className="min-h-[8rem] rounded-xl border-border bg-background leading-relaxed"
-              placeholder="Escreva sua mensagem para a igreja."
+              placeholder={
+                isPrayer
+                  ? "Escreva seu pedido de oração. Compartilhamos com a liderança e oramos por você."
+                  : "Escreva sua mensagem para a igreja."
+              }
             />
             {fieldErrors.message && (
               <p id="contact-message-error" role="alert" className="text-xs text-destructive">
@@ -292,7 +340,7 @@ export function ContactMessageForm({ recipient }: { recipient: string }) {
               ) : (
                 <>
                   <Send className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Enviar mensagem
+                  {isPrayer ? "Enviar pedido" : "Enviar mensagem"}
                 </>
               )}
             </Button>

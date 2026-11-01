@@ -71,6 +71,60 @@ export type CustomPage = {
   sections: CustomPageSection[];
 };
 
+/** Marco da história da igreja (ano + acontecimento confirmado). */
+export type HistoryMilestone = {
+  id: string;
+  year: string;
+  title: string;
+  description: string;
+};
+
+/** Pastor, pastora ou líder apresentado no site. */
+export type PersonProfile = {
+  id: string;
+  /** Ex.: "Pastor", "Pastora", "Líder de louvor". */
+  role: string;
+  name: string;
+  /** Biografia escrita pela liderança. Vazio = não publicamos texto inventado. */
+  bio: string;
+  photoUrl: string;
+};
+
+/** Ministério da igreja e o líder responsável. */
+export type Ministry = {
+  id: string;
+  title: string;
+  /** Nome do líder. Vazio = "Liderança a confirmar". */
+  leader: string;
+  description: string;
+};
+
+/** Item de "Nosso Cremos". */
+export type BeliefItem = {
+  id: string;
+  title: string;
+  description: string;
+};
+
+/** Encontro fixo da semana (agenda cotidiana). */
+export type WeeklyMeeting = {
+  id: string;
+  /** Ex.: "Domingo". */
+  day: string;
+  /** Ex.: "19h". */
+  time: string;
+  title: string;
+  note: string;
+};
+
+/** Links institucionais externos (projeto Renovar Nações e Bíblia on-line). */
+export type InstitutionalLinks = {
+  nationsLabel: string;
+  nationsUrl: string;
+  bibleLabel: string;
+  bibleUrl: string;
+};
+
 export type AboutCopy = {
   eyebrow: string;
   title: string;
@@ -81,6 +135,26 @@ export type AboutCopy = {
   contentNote: string;
   inviteTitle: string;
   inviteDescription: string;
+  /** Títulos das seções institucionais da página Sobre. */
+  historyTitle: string;
+  historyDescription: string;
+  pastorsEyebrow: string;
+  pastorsTitle: string;
+  pastorsIntro: string;
+  ministriesEyebrow: string;
+  ministriesTitle: string;
+  ministriesIntro: string;
+  creedEyebrow: string;
+  creedTitle: string;
+  creedIntro: string;
+  statuteEyebrow: string;
+  statuteTitle: string;
+  statuteSummary: string[];
+  statuteNote: string;
+  /** Texto do bloco de missão da página Sobre. */
+  missionTitle: string;
+  missionBody: string;
+  missionNationsNote: string;
 };
 
 export type ImagesCopy = {
@@ -194,6 +268,17 @@ export type SiteContent = {
   youtube: YoutubeCopy;
   giving: GivingCopy;
   ministryAreas: MinistryArea[];
+  /** Marcos da história da igreja (página Sobre). */
+  history: HistoryMilestone[];
+  /** Pastores e pastoras (página Sobre). */
+  pastors: PersonProfile[];
+  /** Ministérios e líderes (página Sobre). */
+  ministries: Ministry[];
+  /** "Nosso Cremos" (página Sobre). */
+  creed: BeliefItem[];
+  /** Agenda cotidiana: encontros fixos da semana (página Agenda). */
+  weeklyMeetings: WeeklyMeeting[];
+  links: InstitutionalLinks;
   events: EventItem[];
   messages: MessageItem[];
   highlights: Highlight[];
@@ -249,6 +334,34 @@ export const defaultContent: SiteContent = {
     inviteTitle: "Quer conhecer a igreja?",
     inviteDescription:
       "Será uma alegria receber você. Os canais oficiais de contato serão publicados assim que forem confirmados pela liderança.",
+    historyTitle: "Nossa história",
+    historyDescription:
+      "A história da igreja começa na fundação, em 23 de setembro de 2013, e segue sendo construída pelas pessoas que dela participam.",
+    pastorsEyebrow: "Liderança",
+    pastorsTitle: "Nossos pastores",
+    pastorsIntro:
+      "A liderança da igreja é apresentada abaixo. As biografias são publicadas pela própria liderança.",
+    ministriesEyebrow: "Ministérios",
+    ministriesTitle: "Nossos ministérios e líderes",
+    ministriesIntro:
+      "Frentes de serviço da igreja, com a liderança responsável por cada uma delas.",
+    creedEyebrow: "Declaração de fé",
+    creedTitle: "Nosso Cremos",
+    creedIntro:
+      "Os pontos de fé publicados pela liderança da Assembleia de Deus Renovar.",
+    statuteEyebrow: "Documento institucional",
+    statuteTitle: "Nosso estatuto",
+    statuteSummary: [
+      "O estatuto rege a igreja como associação sem fins lucrativos, fundada em 23 de setembro de 2013, em São José dos Campos, São Paulo, com a finalidade de proclamar o Evangelho de nosso Senhor e Salvador Jesus Cristo.",
+      "O documento prevê três áreas de atuação — evangelização, educação cristã e ação social. A previsão de uma área no estatuto não confirma, por si só, atividades, departamentos ou projetos em funcionamento.",
+    ],
+    statuteNote:
+      "O estatuto completo não é reproduzido nem disponibilizado para download neste site. A liderança pode apresentá-lo a quem solicitar pelos canais oficiais de contato.",
+    missionTitle: "Nossa missão como igreja",
+    missionBody:
+      "A Assembleia de Deus Renovar existe para proclamar o Evangelho de Jesus Cristo, ensinar a Palavra e servir pessoas — acolhendo quem chega e cuidando da comunidade.",
+    missionNationsNote:
+      "Conheça também o projeto Renovar Nações, indicado pela liderança da igreja.",
   },
 
   pages: {
@@ -312,6 +425,37 @@ export const defaultContent: SiteContent = {
     },
   ],
 
+  history: [
+    {
+      id: "fundacao",
+      year: "23 de setembro de 2013",
+      title: "Fundação da igreja",
+      description:
+        "Em São José dos Campos, São Paulo, a Igreja Assembleia de Deus Renovar é constituída como associação sem fins lucrativos, com a finalidade de proclamar o Evangelho de Jesus Cristo.",
+    },
+  ],
+
+  // Nomes informados pela igreja. Biografias e fotos entram pelo painel —
+  // nenhum texto de apresentação é escrito sem a liderança.
+  pastors: [
+    { id: "pastor-ricardo", role: "Pastor", name: "Ricardo", bio: "", photoUrl: "" },
+    { id: "pastora-rosa", role: "Pastora", name: "Rosa", bio: "", photoUrl: "" },
+  ],
+
+  // Vazio de propósito: ministérios e líderes só entram quando confirmados.
+  ministries: [],
+  // Vazio de propósito: a declaração de fé é publicada pela liderança.
+  creed: [],
+  // Vazio de propósito: horários de cultos exigem confirmação da igreja.
+  weeklyMeetings: [],
+
+  links: {
+    nationsLabel: "Renovar Nações",
+    nationsUrl: "",
+    bibleLabel: "Ler a Bíblia on-line",
+    bibleUrl: "",
+  },
+
   images: {
     homeHero: "",
     homeMission: "",
@@ -373,7 +517,7 @@ export function getNavigation(content: SiteContent) {
       label: page.menuLabel || page.title,
       to: customPagePath(page.slug),
     })),
-    ...(content.events.length > 0
+    ...(content.events.length > 0 || content.weeklyMeetings.length > 0
       ? [{ label: "Cultos e agenda", to: "/agenda" }]
       : []),
     ...(content.messages.length > 0

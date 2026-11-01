@@ -11,16 +11,22 @@ import {
 import {
   defaultContent,
   slugify,
+  type BeliefItem,
   type ContactInfo,
   type CustomPage,
   type CustomPageSection,
   type EventItem,
   type GivingCopy,
   type Highlight,
+  type HistoryMilestone,
   type ImagesCopy,
+  type InstitutionalLinks,
   type MessageItem,
+  type Ministry,
   type PageHeaderCopy,
+  type PersonProfile,
   type SiteContent,
+  type WeeklyMeeting,
   type YoutubeCopy,
 } from "@/content/site";
 
@@ -171,6 +177,115 @@ function normalizeHighlights(raw: unknown): Highlight[] {
   });
 }
 
+function normalizeHistory(raw: unknown): HistoryMilestone[] {
+  if (!Array.isArray(raw)) return clone(defaultContent.history);
+
+  return raw.flatMap((item, index) => {
+    const value = asRecord(item);
+    const title = asText(value.title, "").trim();
+    if (!title) return [];
+
+    return [
+      {
+        id: asText(value.id, `history-${index}`),
+        year: asText(value.year, "").trim(),
+        title,
+        description: asText(value.description, ""),
+      },
+    ];
+  });
+}
+
+function normalizePastors(raw: unknown): PersonProfile[] {
+  if (!Array.isArray(raw)) return clone(defaultContent.pastors);
+
+  return raw.flatMap((item, index) => {
+    const value = asRecord(item);
+    const name = asText(value.name, "").trim();
+    if (!name) return [];
+
+    return [
+      {
+        id: asText(value.id, `pastor-${index}`),
+        role: asText(value.role, "").trim(),
+        name,
+        bio: asText(value.bio, ""),
+        photoUrl: asImage(value.photoUrl),
+      },
+    ];
+  });
+}
+
+function normalizeMinistries(raw: unknown): Ministry[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw.flatMap((item, index) => {
+    const value = asRecord(item);
+    const title = asText(value.title, "").trim();
+    if (!title) return [];
+
+    return [
+      {
+        id: asText(value.id, `ministry-${index}`),
+        title,
+        leader: asText(value.leader, "").trim(),
+        description: asText(value.description, ""),
+      },
+    ];
+  });
+}
+
+function normalizeCreed(raw: unknown): BeliefItem[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw.flatMap((item, index) => {
+    const value = asRecord(item);
+    const title = asText(value.title, "").trim();
+    const description = asText(value.description, "").trim();
+    if (!title && !description) return [];
+
+    return [
+      {
+        id: asText(value.id, `belief-${index}`),
+        title: title || `Ponto de fé ${index + 1}`,
+        description,
+      },
+    ];
+  });
+}
+
+function normalizeWeeklyMeetings(raw: unknown): WeeklyMeeting[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw.flatMap((item, index) => {
+    const value = asRecord(item);
+    const title = asText(value.title, "").trim();
+    if (!title) return [];
+
+    return [
+      {
+        id: asText(value.id, `meeting-${index}`),
+        day: asText(value.day, "").trim(),
+        time: asText(value.time, "").trim(),
+        title,
+        note: asText(value.note, ""),
+      },
+    ];
+  });
+}
+
+function normalizeLinks(raw: unknown): InstitutionalLinks {
+  const value = asRecord(raw);
+  const base = defaultContent.links;
+
+  return {
+    nationsLabel: asText(value.nationsLabel, base.nationsLabel),
+    nationsUrl: asLink(value.nationsUrl, base.nationsUrl),
+    bibleLabel: asText(value.bibleLabel, base.bibleLabel),
+    bibleUrl: asLink(value.bibleUrl, base.bibleUrl),
+  };
+}
+
 function normalizeCustomSections(raw: unknown): CustomPageSection[] {
   if (!Array.isArray(raw)) return [];
 
@@ -304,6 +419,12 @@ export function normalizeContent(raw: unknown): SiteContent {
       )
     : clone(defaults.about.paragraphs);
 
+  const statuteSummary = Array.isArray(about.statuteSummary)
+    ? about.statuteSummary.filter(
+        (paragraph): paragraph is string => typeof paragraph === "string",
+      )
+    : clone(defaults.about.statuteSummary);
+
   const areas = Array.isArray(value.ministryAreas)
     ? value.ministryAreas.map((area, index) => {
         const item = asRecord(area);
@@ -358,6 +479,45 @@ export function normalizeContent(raw: unknown): SiteContent {
         about.inviteDescription,
         defaults.about.inviteDescription,
       ),
+      historyTitle: asText(about.historyTitle, defaults.about.historyTitle),
+      historyDescription: asText(
+        about.historyDescription,
+        defaults.about.historyDescription,
+      ),
+      pastorsEyebrow: asText(
+        about.pastorsEyebrow,
+        defaults.about.pastorsEyebrow,
+      ),
+      pastorsTitle: asText(about.pastorsTitle, defaults.about.pastorsTitle),
+      pastorsIntro: asText(about.pastorsIntro, defaults.about.pastorsIntro),
+      ministriesEyebrow: asText(
+        about.ministriesEyebrow,
+        defaults.about.ministriesEyebrow,
+      ),
+      ministriesTitle: asText(
+        about.ministriesTitle,
+        defaults.about.ministriesTitle,
+      ),
+      ministriesIntro: asText(
+        about.ministriesIntro,
+        defaults.about.ministriesIntro,
+      ),
+      creedEyebrow: asText(about.creedEyebrow, defaults.about.creedEyebrow),
+      creedTitle: asText(about.creedTitle, defaults.about.creedTitle),
+      creedIntro: asText(about.creedIntro, defaults.about.creedIntro),
+      statuteEyebrow: asText(
+        about.statuteEyebrow,
+        defaults.about.statuteEyebrow,
+      ),
+      statuteTitle: asText(about.statuteTitle, defaults.about.statuteTitle),
+      statuteSummary,
+      statuteNote: asText(about.statuteNote, defaults.about.statuteNote),
+      missionTitle: asText(about.missionTitle, defaults.about.missionTitle),
+      missionBody: asText(about.missionBody, defaults.about.missionBody),
+      missionNationsNote: asText(
+        about.missionNationsNote,
+        defaults.about.missionNationsNote,
+      ),
     },
     pages: {
       agenda: normalizePageHeader(pages.agenda, defaults.pages.agenda),
@@ -369,6 +529,12 @@ export function normalizeContent(raw: unknown): SiteContent {
     youtube: normalizeYoutube(value.youtube),
     giving: normalizeGiving(value.giving),
     ministryAreas: areas,
+    history: normalizeHistory(value.history),
+    pastors: normalizePastors(value.pastors),
+    ministries: normalizeMinistries(value.ministries),
+    creed: normalizeCreed(value.creed),
+    weeklyMeetings: normalizeWeeklyMeetings(value.weeklyMeetings),
+    links: normalizeLinks(value.links),
     events: normalizeEvents(value.events),
     messages: normalizeMessages(value.messages),
     highlights: normalizeHighlights(value.highlights),

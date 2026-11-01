@@ -278,6 +278,8 @@ export function validateMessage(raw) {
   const subject = text(raw?.subject, 140);
   const message = text(raw?.message, 4000);
   const trap = text(raw?.website, 200);
+  // "oracao" = pedido de oração; qualquer outro valor cai em mensagem comum.
+  const kind = text(raw?.kind, 20) === "oracao" ? "oracao" : "mensagem";
 
   if (trap) return { error: "invalid_payload" };
   if (name.length < 2) return { error: "invalid_payload" };
@@ -289,8 +291,10 @@ export function validateMessage(raw) {
       name,
       email,
       phone,
-      subject: subject || "Contato pelo site",
+      subject:
+        subject || (kind === "oracao" ? "Pedido de oração" : "Contato pelo site"),
       message,
+      kind,
     },
   };
 }
@@ -386,18 +390,22 @@ export async function handleContactRequest(req, res, env = process.env) {
     return;
   }
 
-  const { name, email, phone, subject, message } = parsed.value;
+  const { name, email, phone, subject, message, kind } = parsed.value;
+  const isPrayer = kind === "oracao";
 
   const body = [
-    "Nova mensagem enviada pelo site da Assembleia de Deus Renovar.",
+    isPrayer
+      ? "Novo pedido de oração enviado pelo site da Assembleia de Deus Renovar."
+      : "Nova mensagem enviada pelo site da Assembleia de Deus Renovar.",
     "",
     `Nome: ${name}`,
     `E-mail: ${email}`,
     phone ? `Telefone: ${phone}` : "Telefone: não informado",
+    `Tipo: ${isPrayer ? "Pedido de oração" : "Mensagem"}`,
     `Assunto: ${subject}`,
     `Recebida em: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
     "",
-    "Mensagem:",
+    isPrayer ? "Pedido:" : "Mensagem:",
     message,
     "",
     "— Enviado automaticamente pelo formulário de contato (adrenovar.com.br).",

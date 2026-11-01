@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, MapPin, Clock } from "lucide-react";
 
 import { PageHeader } from "@/components/site/PageHeader";
+import { WeeklySchedule } from "@/components/site/WeeklySchedule";
 import { EmptyStateGraphic } from "@/components/brand/Graphics";
 import { Button } from "@/components/ui/button";
 import { useSiteContent } from "@/content/ContentProvider";
@@ -14,6 +15,7 @@ const Agenda = () => {
   const sortedEvents = [...content.events].sort((a, b) =>
     a.date.localeCompare(b.date),
   );
+  const hasWeeklyMeetings = content.weeklyMeetings.length > 0;
 
   return (
     <>
@@ -25,16 +27,20 @@ const Agenda = () => {
       />
 
       <section className="container py-16 sm:py-20">
+        <WeeklySchedule />
+
         {sortedEvents.length === 0 ? (
           <div className="mx-auto max-w-2xl rounded-[2rem] border border-border/80 bg-card px-6 py-12 text-center sm:px-10">
             <EmptyStateGraphic className="mx-auto max-w-[15rem]" />
             <h2 className="mt-8 text-[1.5rem] leading-snug sm:text-2xl">
-              A programação ainda não foi publicada
+              {hasWeeklyMeetings
+                ? "Nenhum evento com data marcada"
+                : "A programação ainda não foi publicada"}
             </h2>
             <p className="mx-auto mt-3 max-w-md text-[0.98rem] leading-relaxed text-muted-foreground">
-              Assim que a liderança confirmar os horários de cultos e encontros,
-              eles serão divulgados aqui. Não publicamos datas ou horários sem
-              confirmação da igreja.
+              {hasWeeklyMeetings
+                ? "Os encontros fixos da semana estão listados acima. Datas especiais aparecem aqui quando confirmadas pela liderança."
+                : "Assim que a liderança confirmar os horários de cultos e encontros, eles serão divulgados aqui. Não publicamos datas ou horários sem confirmação da igreja."}
             </p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Button asChild className="h-11 rounded-full px-6">
