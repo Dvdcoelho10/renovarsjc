@@ -22,6 +22,20 @@ const ok = (label, value) => lines.push(`  [ok]    ${label}: ${value}`);
 const warn = (label, value) => lines.push(`  [aviso] ${label}: ${value}`);
 const fail = (label, value) => lines.push(`  [falta] ${label}: ${value}`);
 
+/** Traduz o código do MySQL para o que precisa ser corrigido. */
+const dbErrorHints = {
+  ER_ACCESS_DENIED_ERROR:
+    "o servidor respondeu e recusou o usuário/senha — revise DB_USER e DB_PASSWORD",
+  ER_DBACCESS_DENIED_ERROR:
+    "o usuário não tem permissão neste banco — libere o acesso no phpMyAdmin",
+  ER_BAD_DB_ERROR: "o banco de DB_NAME não existe — rode: pnpm db:setup",
+  ER_NO_SUCH_TABLE: "faltam tabelas — rode: pnpm db:setup",
+  ECONNREFUSED: "nada escutando nesse host/porta — o MySQL está iniciado?",
+  ETIMEDOUT: "tempo esgotado — porta errada, firewall ou host remoto bloqueado",
+  ENOTFOUND: "DB_HOST não resolve — confira o endereço no .env",
+  EHOSTUNREACH: "o host do banco não está acessível a partir desta máquina",
+};
+
 let critical = 0;
 
 lines.push(`Node ${process.version} · raiz ${root}`);
@@ -83,7 +97,10 @@ if (!isDbConfigured(env)) {
       }
     }
   } catch (error) {
-    fail("conexão", String(error?.code ?? error?.message ?? error));
+    const code = String(error?.code ?? error?.message ?? error);
+    fail("conexão", code);
+    const hint = dbErrorHints[code];
+    if (hint) lines.push(`          -> ${hint}`);
     critical += 1;
   }
 }

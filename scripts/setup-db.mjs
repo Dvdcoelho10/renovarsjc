@@ -52,6 +52,18 @@ function fail(message, error) {
   process.exitCode = 1;
 }
 
+/** Traduz o código do MySQL para o que precisa ser corrigido. */
+const dbErrorHints = {
+  ER_ACCESS_DENIED_ERROR:
+    "o servidor respondeu e recusou o usuário/senha — revise DB_USER e DB_PASSWORD",
+  ER_DBACCESS_DENIED_ERROR:
+    "o usuário não tem permissão neste banco — libere o acesso no phpMyAdmin",
+  ECONNREFUSED: "nada escutando nesse host/porta — o MySQL está iniciado?",
+  ETIMEDOUT: "tempo esgotado — porta errada, firewall ou host remoto bloqueado",
+  ENOTFOUND: "DB_HOST não resolve — confira o endereço no .env",
+  EHOSTUNREACH: "o host do banco não está acessível a partir desta máquina",
+};
+
 let server;
 try {
   server = await mysql.createConnection({
@@ -62,10 +74,13 @@ try {
     connectTimeout: 10000,
   });
 } catch (error) {
+  const hint = dbErrorHints[String(error?.code ?? "")];
+
   fail(
     [
       `Não foi possível conectar no MySQL em ${target}.`,
       "",
+      ...(hint ? [`Motivo: ${hint}`, ""] : []),
       "Confira:",
       "  1. o serviço do MySQL/MariaDB está rodando? (XAMPP: botão Start em MySQL)",
       "  2. DB_HOST/DB_PORT do .env batem com o servidor local?",

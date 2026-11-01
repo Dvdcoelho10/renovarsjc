@@ -208,6 +208,26 @@ type HealthResponse = {
   youtubeConfigured?: boolean;
 };
 
+/** Traduz o código do MySQL para o que precisa ser corrigido. */
+const dbErrorHints: Record<string, string> = {
+  ER_ACCESS_DENIED_ERROR:
+    "O MySQL respondeu, mas recusou o usuário/senha. Confira DB_USER e DB_PASSWORD no .env (ou se DB_HOST está apontando para o servidor da Hostinger, que não aceita login de fora).",
+  ER_DBACCESS_DENIED_ERROR:
+    "O usuário existe, mas não tem permissão neste banco. Libere o acesso no phpMyAdmin ou use outro DB_USER.",
+  ER_BAD_DB_ERROR:
+    "O banco informado em DB_NAME não existe nesse servidor. Rode: pnpm db:setup",
+  ER_NO_SUCH_TABLE:
+    "O banco existe, mas faltam tabelas. Rode: pnpm db:setup",
+  ECONNREFUSED:
+    "Nada escutando nesse host/porta. O serviço do MySQL/MariaDB está iniciado?",
+  ETIMEDOUT:
+    "Tempo esgotado ao conectar. Porta errada, firewall ou host remoto bloqueado.",
+  ENOTFOUND:
+    "DB_HOST não foi encontrado na rede. Confira o endereço no .env.",
+  EHOSTUNREACH:
+    "O host do banco não está acessível a partir desta máquina.",
+};
+
 /**
  * Mostra o resultado de GET /api/health na própria tela de login: é o caminho
  * mais rápido para saber se falta banco, tabela ou se o Node não está rodando.
@@ -324,6 +344,12 @@ function ServerDiagnostics() {
               </li>
             ))}
           </ul>
+
+          {db?.error && dbErrorHints[db.error] && (
+            <p className="mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-xs leading-relaxed text-destructive">
+              {dbErrorHints[db.error]}
+            </p>
+          )}
 
           <ol className="mt-3 grid gap-1.5 text-xs leading-relaxed text-muted-foreground">
             <li>
