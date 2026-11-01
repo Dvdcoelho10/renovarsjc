@@ -7,16 +7,16 @@ import { AreasGrid } from "@/components/site/AreasGrid";
 import { CreedSection } from "@/components/site/CreedSection";
 import { InvitePanel } from "@/components/site/InvitePanel";
 import { MinistriesSection } from "@/components/site/MinistriesSection";
+import { MissionLinks } from "@/components/site/MissionLinks";
 import { PastorsSection } from "@/components/site/PastorsSection";
 import { BibleFlame } from "@/components/brand/Graphics";
-import { Button } from "@/components/ui/button";
 import { useSiteContent } from "@/content/ContentProvider";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const Sobre = () => {
   usePageTitle("Sobre a igreja");
   const { content } = useSiteContent();
-  const { church, about, images, history, links } = content;
+  const { church, about, images, history } = content;
 
   const institutionalData = [
     { label: "Nome", value: church.name },
@@ -113,39 +113,7 @@ const Sobre = () => {
               {about.missionNationsNote}
             </p>
 
-            {(links.nationsUrl || links.bibleUrl) && (
-              <div className="mt-5 flex flex-wrap gap-3">
-                {links.nationsUrl && (
-                  <Button asChild className="h-11 rounded-full px-5">
-                    <a
-                      href={links.nationsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {links.nationsLabel || "Renovar Nações"}
-                      <ArrowUpRight className="ml-1.5 h-4 w-4" aria-hidden="true" />
-                    </a>
-                  </Button>
-                )}
-
-                {links.bibleUrl && (
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="h-11 rounded-full border-border px-5 hover:bg-card"
-                  >
-                    <a
-                      href={links.bibleUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {links.bibleLabel || "Ler a Bíblia on-line"}
-                      <ArrowUpRight className="ml-1.5 h-4 w-4" aria-hidden="true" />
-                    </a>
-                  </Button>
-                )}
-              </div>
-            )}
+            <MissionLinks />
           </div>
 
           <div className="mx-auto w-full max-w-sm rounded-[2rem] bg-card p-6 sm:p-8">

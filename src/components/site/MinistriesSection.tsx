@@ -1,7 +1,9 @@
 import { Users } from "lucide-react";
 
+import { AdminNotice } from "@/components/site/AdminNotice";
 import { SectionHeading } from "@/components/site/SectionHeading";
 import { useSiteContent } from "@/content/ContentProvider";
+import { useAdminSession } from "@/hooks/use-admin-session";
 
 /**
  * Ministérios e líderes. A seção só aparece quando a liderança cadastra ao
@@ -9,9 +11,22 @@ import { useSiteContent } from "@/content/ContentProvider";
  */
 export function MinistriesSection() {
   const { content } = useSiteContent();
+  const { session } = useAdminSession();
   const { about, ministries } = content;
 
-  if (ministries.length === 0) return null;
+  if (ministries.length === 0) {
+    if (session.status !== "authenticated") return null;
+
+    return (
+      <section className="container py-10">
+        <AdminNotice
+          title="Nossos ministérios e líderes"
+          where="Esta seção aparece aqui, logo depois de “Nossos pastores”."
+          path="/admins → aba Sobre → Ministérios e líderes"
+        />
+      </section>
+    );
+  }
 
   return (
     <section className="container py-16 sm:py-20">

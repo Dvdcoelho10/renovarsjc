@@ -49,6 +49,13 @@ export function PageEditor() {
     let cancelled = false;
 
     const syncSession = async (force: boolean) => {
+      // Sem o cookie de dica não há sessão administrativa: evita requisição.
+      if (!hasAdminHint()) {
+        setIsAdmin(false);
+        setOpen(false);
+        return;
+      }
+
       const session = await fetchAdminSession({ force });
       if (cancelled) return;
       const active = session.status === "authenticated";

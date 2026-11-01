@@ -1,6 +1,8 @@
 import { Clock } from "lucide-react";
 
+import { AdminNotice } from "@/components/site/AdminNotice";
 import { useSiteContent } from "@/content/ContentProvider";
+import { useAdminSession } from "@/hooks/use-admin-session";
 
 /**
  * Agenda cotidiana: encontros fixos da semana. Só aparece quando a liderança
@@ -8,9 +10,22 @@ import { useSiteContent } from "@/content/ContentProvider";
  */
 export function WeeklySchedule() {
   const { content } = useSiteContent();
+  const { session } = useAdminSession();
   const meetings = content.weeklyMeetings;
 
-  if (meetings.length === 0) return null;
+  if (meetings.length === 0) {
+    if (session.status !== "authenticated") return null;
+
+    return (
+      <div className="mb-10">
+        <AdminNotice
+          title="Agenda da semana (encontros fixos)"
+          where="Este bloco aparece no topo da página Agenda, acima dos eventos com data."
+          path="/admins → aba Agenda → Agenda cotidiana"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mb-12">

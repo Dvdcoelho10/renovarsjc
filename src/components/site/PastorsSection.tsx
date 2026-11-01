@@ -1,7 +1,9 @@
 import { UserRound } from "lucide-react";
 
+import { AdminNotice } from "@/components/site/AdminNotice";
 import { SectionHeading } from "@/components/site/SectionHeading";
 import { useSiteContent } from "@/content/ContentProvider";
+import { useAdminSession } from "@/hooks/use-admin-session";
 
 /**
  * Pastores e pastoras na página Sobre. Nomes vêm do painel; biografias e fotos
@@ -9,9 +11,22 @@ import { useSiteContent } from "@/content/ContentProvider";
  */
 export function PastorsSection() {
   const { content } = useSiteContent();
+  const { session } = useAdminSession();
   const { about, pastors } = content;
 
-  if (pastors.length === 0) return null;
+  if (pastors.length === 0) {
+    if (session.status !== "authenticated") return null;
+
+    return (
+      <section className="container py-10">
+        <AdminNotice
+          title="Nossos pastores"
+          where="Esta seção aparece aqui, logo depois de “Nossa história”."
+          path="/admins → aba Sobre → Pastores e pastoras"
+        />
+      </section>
+    );
+  }
 
   const hasBio = pastors.some((person) => person.bio.trim().length > 0);
 
