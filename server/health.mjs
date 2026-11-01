@@ -52,12 +52,28 @@ async function inspectDatabase(env, { exposeDbTarget = false } = {}) {
     const existing = new Set(rows.map((row) => String(row.name ?? row.NAME ?? "")));
     const missing = REQUIRED_TABLES.filter((table) => !existing.has(table));
 
+    // Só em desenvolvimento: quantos administradores existem. Ajuda a separar
+    // "senha errada" de "nenhum administrador criado ainda".
+    let adminCount;
+    if (exposeDbTarget && !missing.includes("admin_users")) {
+      try {
+        const adminRows = await query(
+          env,
+          "SELECT COUNT(*) AS total FROM admin_users",
+        );
+        adminCount = Number(adminRows[0]?.total ?? 0);
+      } catch {
+        adminCount = undefined;
+      }
+    }
+
     return {
       configured: true,
       connected: true,
       tables: missing.length === 0 ? "ready" : "missing",
       missingTables: missing,
       ...target,
+      ...(adminCount === undefined ? {} : { adminCount }),
     };
   } catch (error) {
     return {

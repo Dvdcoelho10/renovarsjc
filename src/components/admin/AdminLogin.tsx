@@ -207,6 +207,8 @@ type HealthResponse = {
     target?: string;
     user?: string;
     passwordSet?: boolean;
+    /** Só em desenvolvimento: quantos administradores existem no banco. */
+    adminCount?: number;
   };
   smtpConfigured?: boolean;
   youtubeConfigured?: boolean;
@@ -334,6 +336,16 @@ function ServerDiagnostics() {
               : "não verificadas",
       ok: db?.tables === "ready",
     });
+    if (typeof db?.adminCount === "number") {
+      rows.push({
+        label: "Administrador cadastrado",
+        value:
+          db.adminCount > 0
+            ? `${db.adminCount} (o login confere e-mail e senha aqui)`
+            : "nenhum ainda — rode: pnpm admin:create",
+        ok: db.adminCount > 0,
+      });
+    }
     rows.push({
       label: "Envio de e-mail",
       value: health.smtpConfigured ? "configurado" : "sem senha SMTP",
