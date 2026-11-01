@@ -212,6 +212,32 @@ type HealthResponse = {
   youtubeConfigured?: boolean;
 };
 
+/**
+ * Explica o erro de conexão já com o que sabemos do `.env` (destino, usuário e
+ * se há senha). Isso evita a dica genérica quando o caso é específico.
+ */
+function dbHintFor(db: NonNullable<HealthResponse["db"]>) {
+  const base = dbErrorHints[db.error ?? ""] ?? "";
+
+  if (db.error !== "ER_ACCESS_DENIED_ERROR") return base;
+
+  const extras: string[] = [];
+
+  if (!db.passwordSet) {
+    extras.push(
+      "A senha do banco está vazia no .env: se o seu MySQL pede senha para o root, preencha DB_PASSWORD (ou crie um usuário só do site no phpMyAdmin).",
+    );
+  }
+
+  if ((db.target ?? "").startsWith("localhost")) {
+    extras.push(
+      "Troque DB_HOST para 127.0.0.1: com “localhost” o Node pode conectar por IPv6 (::1) e o MySQL recusar a conta.",
+    );
+  }
+
+  return [base, ...extras].join(" ");
+}
+
 /** Traduz o código do MySQL para o que precisa ser corrigido. */
 const dbErrorHints: Record<string, string> = {
   ER_ACCESS_DENIED_ERROR:
@@ -358,9 +384,9 @@ function ServerDiagnostics() {
             ))}
           </ul>
 
-          {db?.error && dbErrorHints[db.error] && (
+          {db?.error && dbHintFor(db) && (
             <p className="mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-xs leading-relaxed text-destructive">
-              {dbErrorHints[db.error]}
+              {dbHintFor(db)}
             </p>
           )}
 
