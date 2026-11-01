@@ -8,6 +8,7 @@ import {
   type EditablePage,
 } from "@/components/editor/PageEditorFields";
 import { CustomPageFields } from "@/components/admin/CustomPageFields";
+import { PastorsFields } from "@/components/admin/PastorsFields";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -203,18 +204,24 @@ export function PageEditor() {
               Editar página — {pageLabel}
             </SheetTitle>
             <SheetDescription className="leading-relaxed">
-              Altere textos, imagens e links desta página. As mudanças aparecem
-              no site ao salvar e ficam guardadas neste navegador.
+              Altere textos, imagens e links desta página — na Sobre, também a
+              foto e o texto dos pastores. As mudanças valem para todos os
+              visitantes assim que você salvar.
             </SheetDescription>
           </SheetHeader>
 
           <div className="mt-5">
             {standardPage ? (
-              <PageEditorFields
-                page={standardPage}
-                draft={draft}
-                onChange={setDraft}
-              />
+              <div className="grid gap-5">
+                <PageEditorFields
+                  page={standardPage}
+                  draft={draft}
+                  onChange={setDraft}
+                />
+                {standardPage === "about" && (
+                  <PastorsFields content={draft} onChange={setDraft} />
+                )}
+              </div>
             ) : (
               <CustomPageFields
                 page={

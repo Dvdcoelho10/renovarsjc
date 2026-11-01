@@ -2,14 +2,13 @@ import type { ReactNode } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 import { AdminSection, TextAreaField, TextField } from "@/components/admin/fields";
-import { ImageField } from "@/components/admin/ImageField";
+import { PastorsFields } from "@/components/admin/PastorsFields";
 import { createId } from "@/components/admin/utils";
 import { Button } from "@/components/ui/button";
 import type {
   BeliefItem,
   HistoryMilestone,
   Ministry,
-  PersonProfile,
   SiteContent,
 } from "@/content/site";
 
@@ -56,7 +55,7 @@ function EmptyList({ children }: { children: ReactNode }) {
 }
 
 export function InstitutionalForm({ content, onChange }: Props) {
-  const { about, history, pastors, ministries, creed, links } = content;
+  const { about, history, ministries, creed, links } = content;
 
   const patchAbout = <K extends keyof SiteContent["about"]>(
     key: K,
@@ -67,14 +66,6 @@ export function InstitutionalForm({ content, onChange }: Props) {
     onChange({
       ...content,
       history: history.map((item, position) =>
-        position === index ? { ...item, ...patch } : item,
-      ),
-    });
-
-  const patchPastor = (index: number, patch: Partial<PersonProfile>) =>
-    onChange({
-      ...content,
-      pastors: pastors.map((item, position) =>
         position === index ? { ...item, ...patch } : item,
       ),
     });
@@ -188,101 +179,7 @@ export function InstitutionalForm({ content, onChange }: Props) {
         </Button>
       </AdminSection>
 
-      <AdminSection
-        title="Pastores e pastoras"
-        description="Nomes, função e biografia. Escreva apenas o que a liderança informar — nada é completado automaticamente."
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextField
-            id="about-pastors-title"
-            label="Título da seção"
-            value={about.pastorsTitle}
-            onChange={(value) => patchAbout("pastorsTitle", value)}
-          />
-          <TextField
-            id="about-pastors-intro"
-            label="Introdução"
-            value={about.pastorsIntro}
-            onChange={(value) => patchAbout("pastorsIntro", value)}
-          />
-        </div>
-
-        {pastors.length === 0 && (
-          <EmptyList>
-            Nenhum pastor cadastrado. A seção fica oculta no site.
-          </EmptyList>
-        )}
-
-        {pastors.map((person, index) => (
-          <ListCard
-            key={person.id}
-            title={`Apresentação ${index + 1}`}
-            onRemove={() =>
-              onChange({
-                ...content,
-                pastors: pastors.filter((_, position) => position !== index),
-              })
-            }
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                id={`pastor-role-${person.id}`}
-                label="Função"
-                value={person.role}
-                onChange={(value) => patchPastor(index, { role: value })}
-                placeholder="Pastor"
-              />
-              <TextField
-                id={`pastor-name-${person.id}`}
-                label="Nome"
-                value={person.name}
-                onChange={(value) => patchPastor(index, { name: value })}
-                placeholder="Ricardo"
-              />
-            </div>
-            <TextAreaField
-              id={`pastor-bio-${person.id}`}
-              label="Quem é e história"
-              value={person.bio}
-              onChange={(value) => patchPastor(index, { bio: value })}
-              rows={5}
-              hint="Deixe vazio enquanto a liderança não enviar o texto."
-            />
-            <ImageField
-              id={`pastor-photo-${person.id}`}
-              label="Foto"
-              value={person.photoUrl}
-              onChange={(value) => patchPastor(index, { photoUrl: value })}
-              hint="Retrato com autorização de uso. Sem foto, aparece um ícone."
-              previewClassName="h-32"
-            />
-          </ListCard>
-        ))}
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() =>
-            onChange({
-              ...content,
-              pastors: [
-                ...pastors,
-                {
-                  id: createId("pastor"),
-                  role: "",
-                  name: "",
-                  bio: "",
-                  photoUrl: "",
-                },
-              ],
-            })
-          }
-          className="w-fit rounded-full border-border hover:bg-secondary"
-        >
-          <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />
-          Adicionar pastor
-        </Button>
-      </AdminSection>
+      <PastorsFields content={content} onChange={onChange} />
 
       <AdminSection
         title="Ministérios e líderes"

@@ -44,10 +44,10 @@ export function PastorsSection() {
           {pastors.map((person) => (
             <li
               key={person.id}
-              className="rounded-[1.75rem] border border-border/80 bg-card p-6 sm:p-7"
+              className="flex h-full flex-col rounded-[1.75rem] border border-border/80 bg-card p-6 shadow-[0_20px_44px_-36px_rgba(19,37,74,0.5)] transition-colors hover:border-accent/45 sm:p-7"
             >
               <div className="flex items-center gap-4">
-                <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-primary">
+                <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-primary ring-1 ring-inset ring-primary/10">
                   {person.photoUrl ? (
                     <img
                       src={person.photoUrl}
@@ -57,7 +57,7 @@ export function PastorsSection() {
                     />
                   ) : (
                     <UserRound
-                      className="h-6 w-6"
+                      className="h-7 w-7"
                       strokeWidth={1.7}
                       aria-hidden="true"
                     />
@@ -70,17 +70,25 @@ export function PastorsSection() {
                       {person.role}
                     </p>
                   )}
-                  <h3 className="mt-1 font-serif text-xl leading-snug text-foreground">
+                  <h3 className="mt-1 font-serif text-xl leading-snug text-foreground sm:text-[1.4rem]">
                     {person.name}
                   </h3>
                 </div>
               </div>
 
-              {person.bio.trim() && (
-                <p className="mt-4 whitespace-pre-line text-[0.97rem] leading-relaxed text-muted-foreground">
+              {person.bio.trim() ? (
+                <p className="mt-5 whitespace-pre-line text-[0.97rem] leading-relaxed text-muted-foreground">
                   {person.bio}
                 </p>
-              )}
+              ) : session.status === "authenticated" ? (
+                <p className="mt-5 rounded-xl border border-dashed border-accent/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                  Só você vê · adicione a foto e o texto em{" "}
+                  <span className="font-medium text-foreground">
+                    /admins → Sobre → Pastores e pastoras
+                  </span>
+                  .
+                </p>
+              ) : null}
             </li>
           ))}
         </ul>

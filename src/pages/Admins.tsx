@@ -429,9 +429,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <AlertDialogHeader>
                 <AlertDialogTitle>Restaurar conteúdo padrão?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Todas as alterações salvas neste navegador serão removidas e o
-                  site volta ao conteúdo original. Esta ação não pode ser
-                  desfeita.
+                  Todas as alterações publicadas serão substituídas pelo
+                  conteúdo original, para todos os visitantes. Esta ação não pode
+                  ser desfeita.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
