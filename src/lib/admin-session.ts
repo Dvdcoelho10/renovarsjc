@@ -12,6 +12,8 @@ export type AdminSessionState = {
   email: string;
   /** false quando o servidor respondeu que o banco ainda não está configurado. */
   dbConfigured: boolean;
+  /** Variáveis DB_* que o servidor disse estarem faltando. */
+  dbMissing: string[];
 };
 
 const SESSION_ENDPOINT = "/api/admin/session";
@@ -20,7 +22,9 @@ const LOGOUT_ENDPOINT = "/api/admin/logout";
 const HINT_COOKIE = "adr_admin_hint";
 const CACHE_TTL_MS = 20 * 1000;
 
-export type LoginResult = { ok: true } | { ok: false; error: string };
+export type LoginResult =
+  | { ok: true }
+  | { ok: false; error: string; missing?: string[] };
 
 let cache: { at: number; state: AdminSessionState } | null = null;
 
@@ -28,6 +32,7 @@ export const anonymousSession: AdminSessionState = {
   status: "anonymous",
   email: "",
   dbConfigured: true,
+  dbMissing: [],
 };
 
 /** Lê a dica de navegação (cookie não-HttpOnly). Não autoriza nada. */
@@ -58,12 +63,14 @@ export async function fetchAdminSession(
       authenticated?: boolean;
       user?: { email?: string };
       error?: string;
+      missing?: string[];
     };
 
     const state: AdminSessionState = {
       status: data?.authenticated ? "authenticated" : "anonymous",
       email: typeof data?.user?.email === "string" ? data.user.email : "",
       dbConfigured: data?.error !== "db_not_configured",
+      dbMissing: Array.isArray(data?.missing) ? data.missing : [],
     };
 
     cache = { at: Date.now(), state };
@@ -89,6 +96,7 @@ export async function loginAdmin(
       ok?: boolean;
       error?: string;
       user?: { email?: string };
+      missing?: string[];
     };
 
     if (response.ok && data?.ok) {
@@ -98,6 +106,7 @@ export async function loginAdmin(
           status: "authenticated",
           email: data?.user?.email ?? email,
           dbConfigured: true,
+          dbMissing: [],
         },
       };
       return { ok: true };
@@ -106,6 +115,7 @@ export async function loginAdmin(
     return {
       ok: false,
       error: typeof data?.error === "string" ? data.error : "login_failed",
+      missing: Array.isArray(data?.missing) ? data.missing : undefined,
     };
   } catch {
     return { ok: false, error: "network_error" };

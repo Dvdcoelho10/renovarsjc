@@ -14,6 +14,7 @@
     "preview": "vite preview",
     "start": "node server.mjs",
     "admin:create": "node scripts/create-admin.mjs",
+    "db:setup": "node scripts/setup-db.mjs",
     "check:setup": "node scripts/check-setup.mjs"
   },
   "dependencies": {

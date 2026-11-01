@@ -20,7 +20,7 @@ import {
   SESSION_COOKIE,
   sessionCookie,
 } from "./auth.mjs";
-import { isDbConfigured } from "./db.mjs";
+import { isDbConfigured, isDbError, missingDbKeys } from "./db.mjs";
 
 const MAX_JSON_BYTES = 8 * 1024;
 
@@ -89,7 +89,10 @@ export function isJsonRequest(req) {
  */
 export async function requireAdmin(req, res, env) {
   if (!isDbConfigured(env)) {
-    sendJson(res, 503, { error: "db_not_configured" });
+    sendJson(res, 503, {
+      error: "db_not_configured",
+      missing: missingDbKeys(env),
+    });
     return null;
   }
 
@@ -102,7 +105,10 @@ export async function requireAdmin(req, res, env) {
     return session;
   } catch (error) {
     console.error("[admin] falha ao validar sessão:", error?.code ?? error?.message);
-    sendJson(res, 500, { error: "internal_error" });
+    sendJson(res, isDbError(error) ? 503 : 500, {
+      error: isDbError(error) ? "db_unavailable" : "internal_error",
+      code: error?.code ?? "unknown",
+    });
     return null;
   }
 }
@@ -113,7 +119,10 @@ export async function handleAdminLoginRequest(req, res, env) {
     return;
   }
   if (!isDbConfigured(env)) {
-    sendJson(res, 503, { error: "db_not_configured" });
+    sendJson(res, 503, {
+      error: "db_not_configured",
+      missing: missingDbKeys(env),
+    });
     return;
   }
   if (!isSameOrigin(req)) {
@@ -167,7 +176,10 @@ export async function handleAdminLoginRequest(req, res, env) {
     sendJson(res, 200, { ok: true, user: result.user });
   } catch (error) {
     console.error("[admin] falha no login:", error?.code ?? error?.message);
-    sendJson(res, 500, { error: "internal_error" });
+    sendJson(res, isDbError(error) ? 503 : 500, {
+      error: isDbError(error) ? "db_unavailable" : "internal_error",
+      code: error?.code ?? "unknown",
+    });
   }
 }
 
@@ -203,7 +215,11 @@ export async function handleAdminSessionRequest(req, res, env) {
     return;
   }
   if (!isDbConfigured(env)) {
-    sendJson(res, 200, { authenticated: false, error: "db_not_configured" });
+    sendJson(res, 200, {
+      authenticated: false,
+      error: "db_not_configured",
+      missing: missingDbKeys(env),
+    });
     return;
   }
 
@@ -220,6 +236,10 @@ export async function handleAdminSessionRequest(req, res, env) {
     });
   } catch (error) {
     console.error("[admin] falha na sessão:", error?.code ?? error?.message);
-    sendJson(res, 500, { authenticated: false, error: "internal_error" });
+    sendJson(res, 200, {
+      authenticated: false,
+      error: isDbError(error) ? "db_unavailable" : "internal_error",
+      code: error?.code ?? "unknown",
+    });
   }
 }

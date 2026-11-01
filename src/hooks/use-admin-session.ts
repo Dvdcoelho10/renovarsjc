@@ -11,6 +11,7 @@ const initial: AdminSessionState = {
   status: "checking",
   email: "",
   dbConfigured: true,
+  dbMissing: [],
 };
 
 /**

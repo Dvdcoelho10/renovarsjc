@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, LockKeyhole } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2, LockKeyhole } from "lucide-react";
 
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ const loginErrorMessages: Record<string, string> = {
     "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.",
   db_not_configured:
     "O banco de dados ainda não foi configurado no servidor. Fale com quem cuida da hospedagem.",
+  db_unavailable:
+    "O banco está configurado, mas a conexão falhou. Confira se o MySQL está rodando, se o banco/tabelas existem (pnpm db:setup) e a senha do .env.",
   invalid_origin:
     "Não foi possível validar o pedido. Recarregue a página e tente novamente.",
   invalid_payload: "Informe um e-mail e uma senha válidos.",
@@ -27,6 +29,7 @@ export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -43,6 +46,20 @@ export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
 
     if (result.ok) {
       onSuccess();
+      return;
+    }
+
+    if (result.error === "db_not_configured" || result.error === "db_unavailable") {
+      setError(
+        result.error === "db_unavailable"
+          ? loginErrorMessages.db_unavailable
+          : result.missing && result.missing.length > 0
+            ? `O servidor não encontrou o banco de dados: faltam ${result.missing.join(
+                ", ",
+              )}. Preencha no .env (computador) ou nas variáveis da Hostinger e reinicie.`
+            : "O banco de dados ainda não foi configurado no servidor. Fale com quem cuida da hospedagem.",
+      );
+      setShowDiagnostics(true);
       return;
     }
 
@@ -149,6 +166,18 @@ export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
               {pending ? "Entrando..." : "Entrar no painel"}
             </Button>
           </form>
+
+          {showDiagnostics ? (
+            <ServerDiagnostics />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowDiagnostics(true)}
+              className="mt-4 text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Ver diagnóstico do servidor
+            </button>
+          )}
         </div>
 
         <div className="mt-6 flex items-center justify-center gap-3">
@@ -162,6 +191,162 @@ export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+type HealthResponse = {
+  node?: string;
+  db?: {
+    configured?: boolean;
+    connected?: boolean;
+    tables?: string;
+    missingTables?: string[];
+    error?: string;
+  };
+  smtpConfigured?: boolean;
+  youtubeConfigured?: boolean;
+};
+
+/**
+ * Mostra o resultado de GET /api/health na própria tela de login: é o caminho
+ * mais rápido para saber se falta banco, tabela ou se o Node não está rodando.
+ */
+function ServerDiagnostics() {
+  const [state, setState] = useState<"loading" | "ready" | "unreachable">(
+    "loading",
+  );
+  const [health, setHealth] = useState<HealthResponse | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/health", {
+          headers: { Accept: "application/json" },
+        });
+        const data = (await response.json()) as HealthResponse;
+        if (cancelled) return;
+        setHealth(data);
+        setState("ready");
+      } catch {
+        if (!cancelled) setState("unreachable");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const db = health?.db;
+  const rows: { label: string; value: string; ok: boolean }[] = [];
+
+  if (health) {
+    rows.push({
+      label: "Servidor Node",
+      value: health.node ? `respondendo (${health.node})` : "respondendo",
+      ok: true,
+    });
+    rows.push({
+      label: "Banco configurado",
+      value: db?.configured ? "sim" : "não (faltam variáveis DB_*)",
+      ok: Boolean(db?.configured),
+    });
+    rows.push({
+      label: "Conexão com o banco",
+      value: db?.connected
+        ? "conectada"
+        : db?.error
+          ? `falhou (${db.error})`
+          : "não testada",
+      ok: Boolean(db?.connected),
+    });
+    rows.push({
+      label: "Tabelas da migração",
+      value:
+        db?.tables === "ready"
+          ? "prontas"
+          : db?.missingTables && db.missingTables.length > 0
+            ? `faltam: ${db.missingTables.join(", ")}`
+            : db?.tables === "not_configured"
+              ? "sem banco configurado"
+              : "não verificadas",
+      ok: db?.tables === "ready",
+    });
+    rows.push({
+      label: "Envio de e-mail",
+      value: health.smtpConfigured ? "configurado" : "sem senha SMTP",
+      ok: Boolean(health.smtpConfigured),
+    });
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border border-border bg-background/70 p-4">
+      <p className="text-[0.66rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        Diagnóstico do servidor
+      </p>
+
+      {state === "loading" && (
+        <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          Consultando /api/health…
+        </p>
+      )}
+
+      {state === "unreachable" && (
+        <p className="mt-3 text-sm leading-relaxed text-destructive">
+          Não foi possível consultar <code>/api/health</code>. Isso indica que o
+          servidor Node não está atendendo este endereço — hospedagem estática
+          não executa o painel.
+        </p>
+      )}
+
+      {state === "ready" && (
+        <>
+          <ul className="mt-3 grid gap-2">
+            {rows.map((row) => (
+              <li
+                key={row.label}
+                className="flex items-start justify-between gap-3 text-sm"
+              >
+                <span className="text-muted-foreground">{row.label}</span>
+                <span
+                  className={
+                    row.ok
+                      ? "text-right font-medium text-foreground"
+                      : "text-right font-medium text-destructive"
+                  }
+                >
+                  {row.value}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <ol className="mt-3 grid gap-1.5 text-xs leading-relaxed text-muted-foreground">
+            <li>
+              1. No computador: instale MySQL/MariaDB (ou XAMPP) e deixe o
+              serviço rodando.
+            </li>
+            <li>
+              2. Preencha <code>DB_HOST</code>, <code>DB_NAME</code>,{" "}
+              <code>DB_USER</code> e <code>DB_PASSWORD</code> no{" "}
+              <code>.env</code>.
+            </li>
+            <li>
+              3. Rode <code>pnpm db:setup</code> (cria o banco e as tabelas) e{" "}
+              <code>pnpm admin:create</code> (cria o acesso).
+            </li>
+            <li>4. Reinicie o servidor e volte aqui.</li>
+          </ol>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+            Na Hostinger: use as variáveis do app no hPanel, importe a migração
+            no phpMyAdmin e reinicie.
+          </p>
+        </>
+      )}
     </div>
   );
 }

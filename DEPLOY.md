@@ -119,6 +119,59 @@ por e-mail/IP em 15 minutos, respondem `429 rate_limited`.
 - **Diagnóstico rápido:** `pnpm check:setup` lista banco, tabelas, administradores, conteúdo
   publicado, SMTP, YouTube e `dist/` sem exibir segredos nem alterar nada.
 
+## 3.3 Rodar o painel no computador (MySQL local)
+
+O painel **não funciona sem banco**: sem `DB_*`, o servidor responde
+`db_not_configured` (é exatamente o aviso que aparece na tela de login). Para testar no
+computador:
+
+1. Instale MySQL ou MariaDB (ou use XAMPP/WampServer) e deixe o serviço rodando.
+   O `mysqld` precisa estar na **mesma máquina** do servidor do app: o app acessa
+   `127.0.0.1:3306`. Em XAMPP, é o botão *Start* em “MySQL”.
+2. No `.env` (nunca versionado) — os valores de um MySQL local padrão:
+
+```ini
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=renovar
+DB_USER=root
+DB_PASSWORD=
+```
+
+   `DB_PASSWORD` vazio só funciona quando o `root` local não tem senha (padrão do
+   XAMPP). Se você definiu uma senha, coloque-a aqui.
+3. Crie o banco, as tabelas e aplique as migrações com um comando:
+
+```bash
+pnpm db:setup
+```
+
+   O script conecta no servidor, cria `DB_NAME` (utf8mb4) se não existir, aplica
+   todos os arquivos de `database/migrations/` (idempotentes, sem `DROP`) e lista
+   as tabelas. Ele **não** cria o administrador. Alternativa manual: importar
+   `database/migrations/001_admin_content_media.sql` no phpMyAdmin/HeidiSQL.
+4. **Reinicie o servidor** de desenvolvimento: o `.env` é lido na inicialização.
+5. Confira com `pnpm check:setup` (nesta ordem: conexão → tabelas → administrador).
+6. Crie o administrador sem deixar a senha no arquivo (PowerShell):
+
+```powershell
+$env:ADMIN_EMAIL = "admin@adrenovar.com.br"
+$env:ADMIN_PASSWORD = "uma-senha-longa-e-unica"
+pnpm admin:create
+Remove-Item Env:ADMIN_PASSWORD
+```
+
+7. Abra `/admins` e entre. A tela de login também tem **“Ver diagnóstico do servidor”**, que
+   mostra Node, banco, tabelas e SMTP lidos de `/api/health`.
+
+Observações: o banco da Hostinger normalmente **não aceita conexão de fora** (a não ser que
+você habilite *Remote MySQL* com o IP liberado) — nesse caso, crie o administrador pelo
+terminal da própria Hostinger. O preview do Dyad **não traz MySQL**: a tela de login só entra
+depois de existir um MySQL/MariaDB rodando na mesma máquina (passos 1–4) ou de `DB_*` apontar
+para um banco acessível. As respostas de erro ajudam a separar os casos:
+`db_not_configured` = falta variável no `.env`; `db_unavailable` = variáveis ok, conexão
+falhou (serviço parado, senha errada, banco ou tabela ausente).
+
 ## 4. Verificação após o deploy
 
 1. `GET /` → página inicial carrega com logo, fontes e imagens.

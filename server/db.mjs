@@ -20,9 +20,17 @@ export function readDbConfig(env = process.env) {
   };
 }
 
+/** Chaves sem as quais não há conexão (senha vazia é aceita: root local). */
+export const REQUIRED_DB_KEYS = ["DB_HOST", "DB_NAME", "DB_USER"];
+
 export function isDbConfigured(env = process.env) {
   const config = readDbConfig(env);
   return Boolean(config.host && config.database && config.user);
+}
+
+/** Nomes das variáveis ausentes, para a mensagem de erro do painel. */
+export function missingDbKeys(env = process.env) {
+  return REQUIRED_DB_KEYS.filter((key) => !String(env[key] ?? "").trim());
 }
 
 export function getPool(env = process.env) {
@@ -82,4 +90,26 @@ export async function pingDb(env = process.env) {
   } catch (error) {
     return { ok: false, code: error?.code ?? "db_error" };
   }
+}
+
+/**
+ * Verdadeiro quando o erro veio do MySQL/MariaDB (serviço fora do ar, senha
+ * errada, banco ou tabela inexistente) e não de um bug do código.
+ */
+export function isDbError(error) {
+  const code = String(error?.code ?? "");
+  if (!code) return false;
+
+  return (
+    code.startsWith("ER_") ||
+    code.startsWith("PROTOCOL_") ||
+    [
+      "ECONNREFUSED",
+      "ENOTFOUND",
+      "ETIMEDOUT",
+      "EHOSTUNREACH",
+      "ECONNRESET",
+      "EPIPE",
+    ].includes(code)
+  );
 }
