@@ -12,7 +12,7 @@ import {
 } from "node:crypto";
 import { promisify } from "node:util";
 
-import { query } from "./db.mjs";
+import { query, sqlTimestamp } from "./db.mjs";
 
 const scrypt = promisify(scryptCallback);
 
@@ -179,12 +179,22 @@ export function readCookie(req, name) {
 
 async function createSession(env, userId, { ip, userAgent }) {
   const token = randomBytes(32).toString("base64url");
+  const createdAt = sqlTimestamp();
+  const expiresAt = sqlTimestamp(new Date(Date.now() + SESSION_HOURS * 3600 * 1000));
 
   await query(
     env,
-    `INSERT INTO admin_sessions (user_id, token_hash, ip_hash, user_agent, expires_at)
-     VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ${SESSION_HOURS} HOUR))`,
-    [userId, sha256(token), ip ? sha256(ip) : null, String(userAgent ?? "").slice(0, 255)],
+    `INSERT INTO admin_sessions
+       (user_id, token_hash, ip_hash, user_agent, created_at, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      userId,
+      sha256(token),
+      ip ? sha256(ip) : null,
+      String(userAgent ?? "").slice(0, 255),
+      createdAt,
+      expiresAt,
+    ],
   );
 
   return token;
@@ -198,9 +208,9 @@ export async function findSession(env, token) {
     `SELECT s.id AS session_id, s.expires_at, u.id AS user_id, u.email
        FROM admin_sessions s
        JOIN admin_users u ON u.id = s.user_id
-      WHERE s.token_hash = ? AND s.expires_at > NOW() AND u.is_active = 1
+      WHERE s.token_hash = ? AND s.expires_at > ? AND u.is_active = 1
       LIMIT 1`,
-    [sha256(token)],
+    [sha256(token), sqlTimestamp()],
   );
 
   const row = rows[0];
@@ -215,14 +225,18 @@ export async function destroySession(env, token) {
 }
 
 async function countRecentFailures(env, identifierHash, ipHash) {
+  const windowStart = sqlTimestamp(
+    new Date(Date.now() - FAILURE_WINDOW_MINUTES * 60 * 1000),
+  );
+
   const rows = await query(
     env,
     `SELECT COUNT(*) AS total
        FROM login_attempts
       WHERE succeeded = 0
-        AND created_at > DATE_SUB(NOW(), INTERVAL ${FAILURE_WINDOW_MINUTES} MINUTE)
+        AND created_at > ?
         AND (identifier_hash = ? OR ip_hash = ?)`,
-    [identifierHash, ipHash],
+    [windowStart, identifierHash, ipHash],
   );
 
   return Number(rows[0]?.total ?? 0);
@@ -231,8 +245,9 @@ async function countRecentFailures(env, identifierHash, ipHash) {
 async function recordAttempt(env, identifierHash, ipHash, succeeded) {
   await query(
     env,
-    "INSERT INTO login_attempts (identifier_hash, ip_hash, succeeded) VALUES (?, ?, ?)",
-    [identifierHash, ipHash, succeeded ? 1 : 0],
+    `INSERT INTO login_attempts (identifier_hash, ip_hash, succeeded, created_at)
+     VALUES (?, ?, ?, ?)`,
+    [identifierHash, ipHash, succeeded ? 1 : 0, sqlTimestamp()],
   );
 }
 
@@ -265,13 +280,17 @@ export async function login(env, { email, password, ip, userAgent }) {
     return { error: "invalid_credentials" };
   }
 
+  const now = sqlTimestamp();
+
   await recordAttempt(env, identifierHash, ipHash, true);
-  await query(env, "UPDATE admin_users SET last_login_at = NOW() WHERE id = ?", [user.id]);
-  await query(env, "DELETE FROM admin_sessions WHERE expires_at < NOW()");
-  await query(
-    env,
-    "DELETE FROM login_attempts WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)",
-  );
+  await query(env, "UPDATE admin_users SET last_login_at = ? WHERE id = ?", [
+    now,
+    user.id,
+  ]);
+  await query(env, "DELETE FROM admin_sessions WHERE expires_at < ?", [now]);
+  await query(env, "DELETE FROM login_attempts WHERE created_at < ?", [
+    sqlTimestamp(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+  ]);
 
   const token = await createSession(env, user.id, { ip, userAgent });
 

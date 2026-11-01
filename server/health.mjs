@@ -10,7 +10,14 @@
  * Se esta rota devolver HTML (ou 404 do host), o processo Node não está
  * atendendo o domínio — ver DEPLOY.md, seção “/admins não abre”.
  */
-import { isDbConfigured, query, readDbConfig } from "./db.mjs";
+import {
+  describeTarget,
+  isDbConfigured,
+  listTables,
+  query,
+  readDbConfig,
+  readDbDriver,
+} from "./db.mjs";
 
 const REQUIRED_TABLES = [
   "site_content",
@@ -30,12 +37,16 @@ let cache = { at: 0, body: null };
  */
 async function inspectDatabase(env, { exposeDbTarget = false } = {}) {
   const config = readDbConfig(env);
+  const driver = readDbDriver(env);
   const target = exposeDbTarget
-    ? {
-        target: `${config.host}:${config.port}/${config.database}`,
-        user: config.user,
-        passwordSet: Boolean(config.password),
-      }
+    ? driver === "sqlite"
+      ? { driver, target: describeTarget(env) }
+      : {
+          driver,
+          target: describeTarget(env),
+          user: config.user,
+          passwordSet: Boolean(config.password),
+        }
     : {};
 
   if (!isDbConfigured(env)) {
@@ -45,11 +56,7 @@ async function inspectDatabase(env, { exposeDbTarget = false } = {}) {
   try {
     await query(env, "SELECT 1");
 
-    const rows = await query(
-      env,
-      "SELECT table_name AS name FROM information_schema.tables WHERE table_schema = DATABASE()",
-    );
-    const existing = new Set(rows.map((row) => String(row.name ?? row.NAME ?? "")));
+    const existing = new Set(await listTables(env));
     const missing = REQUIRED_TABLES.filter((table) => !existing.has(table));
 
     // Só em desenvolvimento: quantos administradores existem. Ajuda a separar

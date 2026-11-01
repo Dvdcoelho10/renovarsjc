@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  handleAdminBootstrapRequest,
   handleAdminLoginRequest,
   handleAdminLogoutRequest,
   handleAdminSessionRequest,
@@ -126,6 +127,11 @@ const server = createServer(async (req, res) => {
 
   if (url.pathname === "/api/admin/logout") {
     await handleAdminLogoutRequest(req, res, env);
+    return;
+  }
+
+  if (url.pathname === "/api/admin/bootstrap") {
+    await handleAdminBootstrapRequest(req, res, env);
     return;
   }
 

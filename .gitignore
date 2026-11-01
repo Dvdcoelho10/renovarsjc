@@ -35,3 +35,6 @@ dist-ssr
 .env.local
 .env.*.local
 !.env.example
+
+# Banco local em arquivo (SQLite) e imagens enviadas nele
+data/

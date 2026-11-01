@@ -15,7 +15,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { hashPassword } from "../server/auth.mjs";
-import { closePool, isDbConfigured, query, readDbConfig } from "../server/db.mjs";
+import { closePool, describeTarget, isDbConfigured, query } from "../server/db.mjs";
 import { loadServerEnv } from "../server/env.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -46,8 +46,7 @@ if (password.toLowerCase().includes(email.split("@")[0])) {
   stop("A senha não pode conter o nome do e-mail.");
 }
 
-const config = readDbConfig(env);
-console.log(`[create-admin] banco ${config.host}:${config.port}/${config.database}`);
+console.log(`[create-admin] banco ${describeTarget(env)}`);
 
 try {
   const hash = await hashPassword(password);
@@ -82,10 +81,8 @@ try {
   }
 } catch (error) {
   console.error(`[create-admin] erro: ${error?.code ?? error?.message ?? error}`);
-  if (error?.code === "ER_NO_SUCH_TABLE") {
-    console.error(
-      "[create-admin] aplique database/migrations/001_admin_content_media.sql no phpMyAdmin antes.",
-    );
+  if (error?.code === "ER_NO_SUCH_TABLE" || String(error?.code ?? "").startsWith("SQLITE_")) {
+    console.error("[create-admin] as tabelas não existem ainda. Rode: pnpm db:setup");
   }
   process.exitCode = 1;
 } finally {

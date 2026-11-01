@@ -4,6 +4,7 @@
  * - POST /api/admin/login    → valida e-mail/senha, cria sessão no cookie HttpOnly
  * - POST /api/admin/logout   → encerra a sessão
  * - GET  /api/admin/session  → informa se o navegador tem sessão válida
+ * - POST /api/admin/bootstrap → cria o primeiro administrador (só no banco local)
  *
  * As rotas de escrita do painel usam `requireAdmin()`.
  */
@@ -13,6 +14,7 @@ import {
   clientIp,
   destroySession,
   findSession,
+  hashPassword,
   hintCookie,
   isSecureRequest,
   login,
@@ -20,7 +22,9 @@ import {
   SESSION_COOKIE,
   sessionCookie,
 } from "./auth.mjs";
-import { isDbConfigured, isDbError, missingDbKeys } from "./db.mjs";
+import { isDbConfigured, isDbError, missingDbKeys, query, readDbDriver } from "./db.mjs";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
 
 const MAX_JSON_BYTES = 8 * 1024;
 
@@ -179,6 +183,83 @@ export async function handleAdminLoginRequest(req, res, env) {
     sendJson(res, isDbError(error) ? 503 : 500, {
       error: isDbError(error) ? "db_unavailable" : "internal_error",
       code: error?.code ?? "unknown",
+    });
+  }
+}
+
+/**
+ * Cria o PRIMEIRO administrador, sem terminal.
+ *
+ * Só funciona quando o banco é o arquivo local (`DB_DRIVER=sqlite`) e quando
+ * ainda não existe nenhum administrador — então nunca é um "cadastro aberto":
+ * a Hostinger usa MySQL e esta rota responde 403 lá.
+ */
+export async function handleAdminBootstrapRequest(req, res, env) {
+  if (req.method !== "POST") {
+    sendJson(res, 405, { error: "method_not_allowed" });
+    return;
+  }
+  if (readDbDriver(env) !== "sqlite") {
+    sendJson(res, 403, { error: "bootstrap_disabled" });
+    return;
+  }
+  if (!isSameOrigin(req)) {
+    sendJson(res, 403, { error: "invalid_origin" });
+    return;
+  }
+  if (!isJsonRequest(req)) {
+    sendJson(res, 415, { error: "unsupported_media_type" });
+    return;
+  }
+
+  let body;
+  try {
+    body = await readJsonBody(req);
+  } catch (error) {
+    sendJson(res, error?.status ?? 400, { error: error?.code ?? "invalid_payload" });
+    return;
+  }
+
+  const email =
+    typeof body?.email === "string" ? body.email.trim().toLowerCase().slice(0, 190) : "";
+  const password = typeof body?.password === "string" ? body.password : "";
+
+  if (!EMAIL_PATTERN.test(email)) {
+    sendJson(res, 400, { error: "invalid_email" });
+    return;
+  }
+  if (password.length < 12 || password.length > 200) {
+    sendJson(res, 400, { error: "weak_password" });
+    return;
+  }
+  if (password.toLowerCase().includes(email.split("@")[0])) {
+    sendJson(res, 400, { error: "weak_password" });
+    return;
+  }
+
+  try {
+    const admins = await query(env, "SELECT COUNT(*) AS total FROM admin_users");
+    if (Number(admins[0]?.total ?? 0) > 0) {
+      sendJson(res, 409, { error: "admin_exists" });
+      return;
+    }
+
+    const hash = await hashPassword(password);
+    await query(
+      env,
+      "INSERT INTO admin_users (email, password_hash, is_active) VALUES (?, ?, 1)",
+      [email, hash],
+    );
+
+    console.warn(`[admin] primeiro administrador criado no banco local: ${email}`);
+    sendJson(res, 201, { ok: true });
+  } catch (error) {
+    console.error(
+      "[admin] falha ao criar primeiro administrador:",
+      error?.code ?? error?.message,
+    );
+    sendJson(res, isDbError(error) ? 503 : 500, {
+      error: isDbError(error) ? "db_unavailable" : "internal_error",
     });
   }
 }

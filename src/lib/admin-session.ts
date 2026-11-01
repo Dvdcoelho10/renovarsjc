@@ -19,6 +19,7 @@ export type AdminSessionState = {
 const SESSION_ENDPOINT = "/api/admin/session";
 const LOGIN_ENDPOINT = "/api/admin/login";
 const LOGOUT_ENDPOINT = "/api/admin/logout";
+const BOOTSTRAP_ENDPOINT = "/api/admin/bootstrap";
 const HINT_COOKIE = "adr_admin_hint";
 const CACHE_TTL_MS = 20 * 1000;
 
@@ -116,6 +117,36 @@ export async function loginAdmin(
       ok: false,
       error: typeof data?.error === "string" ? data.error : "login_failed",
       missing: Array.isArray(data?.missing) ? data.missing : undefined,
+    };
+  } catch {
+    return { ok: false, error: "network_error" };
+  }
+}
+
+/**
+ * Cria o primeiro administrador. Só o servidor decide se pode: exige banco
+ * local (DB_DRIVER=sqlite) e nenhum administrador cadastrado.
+ */
+export async function createFirstAdmin(
+  email: string,
+  password: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const response = await fetch(BOOTSTRAP_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ email, password }),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      ok?: boolean;
+      error?: string;
+    };
+
+    if (response.ok && data?.ok) return { ok: true };
+    return {
+      ok: false,
+      error: typeof data?.error === "string" ? data.error : "bootstrap_failed",
     };
   } catch {
     return { ok: false, error: "network_error" };

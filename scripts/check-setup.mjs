@@ -1,17 +1,25 @@
 /**
- * Diagnóstico do ambiente de produção (não altera nada).
+ * Diagnóstico do ambiente (não altera nada).
  *
  *   node scripts/check-setup.mjs
  *
- * Mostra se as variáveis existem (sem exibir valores sensíveis), se o banco
- * responde, se as tabelas da migração estão aplicadas, se há administrador,
- * se o site já tem conteúdo publicado e se SMTP/YouTube estão configurados.
+ * Mostra qual driver de banco está em uso (MySQL ou SQLite local), se a conexão
+ * responde, se as tabelas existem, se há administrador, se o site já tem
+ * conteúdo publicado e se SMTP/YouTube estão configurados. Nunca exibe a senha.
  */
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { closePool, isDbConfigured, query, readDbConfig } from "../server/db.mjs";
+import {
+  closePool,
+  describeTarget,
+  isDbConfigured,
+  listTables,
+  query,
+  readDbConfig,
+  readDbDriver,
+} from "../server/db.mjs";
 import { loadServerEnv } from "../server/env.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -42,24 +50,26 @@ lines.push(`Node ${process.version} · raiz ${root}`);
 lines.push("");
 lines.push("Banco de dados");
 
-const config = readDbConfig(env);
+const driver = readDbDriver(env);
+
 if (!isDbConfigured(env)) {
   fail("DB_HOST / DB_NAME / DB_USER", "não configurados");
   critical += 1;
 } else {
-  ok("destino", `${config.host}:${config.port}/${config.database}`);
-  ok("usuário", config.user);
-  ok("senha", config.password ? "definida" : "vazia");
+  ok("driver", driver === "sqlite" ? "sqlite (arquivo local, sem servidor)" : "mysql");
+  ok("destino", describeTarget(env));
+
+  if (driver !== "sqlite") {
+    const config = readDbConfig(env);
+    ok("usuário", config.user);
+    ok("senha", config.password ? "definida" : "vazia");
+  }
 
   try {
     await query(env, "SELECT 1");
     ok("conexão", "respondeu");
 
-    const tables = await query(
-      env,
-      "SELECT table_name AS name FROM information_schema.tables WHERE table_schema = DATABASE()",
-    );
-    const names = new Set(tables.map((row) => String(row.name ?? row.NAME ?? "")));
+    const names = new Set(await listTables(env));
 
     for (const table of [
       "site_content",
@@ -70,7 +80,7 @@ if (!isDbConfigured(env)) {
     ]) {
       if (names.has(table)) ok("tabela", table);
       else {
-        fail("tabela", `${table} ausente — aplique database/migrations/001_admin_content_media.sql`);
+        fail("tabela", `${table} ausente — rode: pnpm db:setup`);
         critical += 1;
       }
     }
@@ -88,10 +98,13 @@ if (!isDbConfigured(env)) {
     if (names.has("site_content")) {
       const rows = await query(
         env,
-        "SELECT LENGTH(payload) AS bytes, updated_at FROM site_content WHERE id = 1 LIMIT 1",
+        "SELECT length(payload) AS bytes, updated_at FROM site_content WHERE id = 1 LIMIT 1",
       );
       if (rows[0]) {
-        ok("conteúdo publicado", `${Number(rows[0].bytes ?? 0)} bytes desde ${rows[0].updated_at}`);
+        ok(
+          "conteúdo publicado",
+          `${Number(rows[0].bytes ?? 0)} bytes desde ${rows[0].updated_at}`,
+        );
       } else {
         warn("conteúdo publicado", "nenhum ainda — o site usa o conteúdo padrão");
       }
@@ -108,7 +121,10 @@ if (!isDbConfigured(env)) {
 lines.push("");
 lines.push("E-mail do formulário de contato");
 if (env.SMTP_PASSWORD) {
-  ok("SMTP", `${env.SMTP_HOST ?? "smtp.hostinger.com"}:${env.SMTP_PORT ?? "465"} · ${env.SMTP_USER ?? ""}`);
+  ok(
+    "SMTP",
+    `${env.SMTP_HOST ?? "smtp.hostinger.com"}:${env.SMTP_PORT ?? "465"} · ${env.SMTP_USER ?? ""}`,
+  );
   ok("destino", env.CONTACT_TO_EMAIL ?? "(padrão contato@adrenovar.com.br)");
 } else {
   warn("SMTP_PASSWORD", "não definida — o formulário responde mail_not_configured");

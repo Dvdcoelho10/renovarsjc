@@ -1,15 +1,15 @@
 /**
- * Prepara o banco definido no .env para uso no computador:
+ * Prepara o banco do .env (não é destrutivo).
  *
  *   pnpm db:setup
  *
- * 1. conecta no MySQL/MariaDB (sem escolher banco);
- * 2. cria o banco de DB_NAME com utf8mb4 se ele ainda não existir;
- * 3. aplica todas as migrações de database/migrations (idempotentes);
- * 4. mostra as tabelas encontradas.
+ * Com `DB_DRIVER=sqlite` (padrão do ambiente local): cria o arquivo
+ * `data/dev.sqlite` e o schema completo. Sem servidor e sem senha.
  *
- * Não apaga, não recria e não altera nada existente. Também não cria o
- * administrador — isso é feito por `pnpm admin:create`.
+ * Com MySQL/MariaDB: conecta no servidor, cria o banco de DB_NAME em utf8mb4
+ * se faltar e aplica as migrações de database/migrations (idempotentes).
+ *
+ * Em nenhum dos casos cria administrador — isso é `pnpm admin:create`.
  */
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
@@ -17,40 +17,21 @@ import { fileURLToPath } from "node:url";
 
 import mysql from "mysql2/promise";
 
-import { readDbConfig } from "../server/db.mjs";
+import {
+  closePool,
+  describeTarget,
+  listTables,
+  query,
+  readDbConfig,
+  readDbDriver,
+  readSqliteFile,
+  sqlTimestamp,
+} from "../server/db.mjs";
 import { loadServerEnv } from "../server/env.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const env = loadServerEnv(root);
-const config = readDbConfig(env);
-
-const target = `${config.host}:${config.port}`;
-const database = config.database.replace(/`/g, "");
-
-if (!config.host || !database || !config.user) {
-  console.error(
-    [
-      "Faltam dados do banco no arquivo .env.",
-      "",
-      "  DB_HOST=127.0.0.1",
-      "  DB_PORT=3306",
-      "  DB_NAME=renovar",
-      "  DB_USER=root",
-      "  DB_PASSWORD=",
-      "",
-      "Preencha, salve e rode de novo: pnpm db:setup",
-    ].join("\n"),
-  );
-  process.exit(1);
-}
-
-function fail(message, error) {
-  console.error(message);
-  if (error) {
-    console.error(`Detalhe: ${error.code ?? error.message ?? String(error)}`);
-  }
-  process.exitCode = 1;
-}
+const driver = readDbDriver(env);
 
 /** Traduz o código do MySQL para o que precisa ser corrigido. */
 const dbErrorHints = {
@@ -64,107 +45,155 @@ const dbErrorHints = {
   EHOSTUNREACH: "o host do banco não está acessível a partir desta máquina",
 };
 
-let server;
-try {
-  server = await mysql.createConnection({
-    host: config.host,
-    port: config.port,
-    user: config.user,
-    password: config.password,
-    connectTimeout: 10000,
-  });
-} catch (error) {
-  const hint = dbErrorHints[String(error?.code ?? "")];
-
-  fail(
-    [
-      `Não foi possível conectar no MySQL em ${target}.`,
-      "",
-      ...(hint ? [`Motivo: ${hint}`, ""] : []),
-      "Confira:",
-      "  1. o serviço do MySQL/MariaDB está rodando? (XAMPP: botão Start em MySQL)",
-      "  2. DB_HOST/DB_PORT do .env batem com o servidor local?",
-      "  3. DB_USER/DB_PASSWORD são de um usuário com permissão de criar banco?",
-    ].join("\n"),
-    error,
-  );
-  process.exit(1);
-}
-
-try {
-  const [existing] = await server.query(
-    "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?",
-    [database],
-  );
-
-  if (existing.length === 0) {
-    await server.query(
-      `CREATE DATABASE \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
-    );
-    console.log(`Banco "${database}" criado.`);
-  } else {
-    console.log(`Banco "${database}" já existia.`);
-  }
-} catch (error) {
-  fail(`Não foi possível criar o banco "${database}".`, error);
-  await server.end().catch(() => undefined);
-  process.exit(1);
-}
-
-await server.end().catch(() => undefined);
-
-const migrationsDir = path.join(root, "database", "migrations");
-const files = (await readdir(migrationsDir))
-  .filter((name) => name.endsWith(".sql"))
-  .sort();
-
-if (files.length === 0) {
-  fail("Nenhuma migração encontrada em database/migrations.");
-  process.exit(1);
-}
-
-let db;
-try {
-  db = await mysql.createConnection({
-    host: config.host,
-    port: config.port,
-    user: config.user,
-    password: config.password,
-    database,
-    multipleStatements: true,
-    connectTimeout: 10000,
-  });
-} catch (error) {
-  fail(`Conectou no servidor, mas não abriu o banco "${database}".`, error);
-  process.exit(1);
-}
-
-try {
-  for (const file of files) {
-    const sql = await readFile(path.join(migrationsDir, file), "utf8");
-    await db.query(sql);
-    console.log(`Migração aplicada: ${file}`);
-  }
-
-  const [tables] = await db.query(
-    "SELECT table_name AS name FROM information_schema.tables WHERE table_schema = ? ORDER BY table_name",
-    [database],
-  );
+async function report() {
+  const tables = await listTables(env);
   console.log("");
-  console.log(`Tabelas em "${database}":`);
-  for (const row of tables) console.log(`  - ${row.name}`);
+  console.log(`Tabelas em ${describeTarget(env)}:`);
+  for (const table of tables) console.log(`  - ${table}`);
 
-  const [admins] = await db.query("SELECT COUNT(*) AS total FROM admin_users");
+  const admins = await query(env, "SELECT COUNT(*) AS total FROM admin_users");
+  const total = Number(admins[0]?.total ?? 0);
   console.log("");
-  if (Number(admins[0]?.total ?? 0) > 0) {
-    console.log(`Administradores cadastrados: ${admins[0].total}`);
-  } else {
-    console.log("Nenhum administrador ainda. Rode: pnpm admin:create");
-  }
+  if (total > 0) console.log(`Administradores cadastrados: ${total}`);
+  else console.log("Nenhum administrador ainda. Rode: pnpm admin:create");
   console.log("");
   console.log("Pronto. Reinicie o servidor (pnpm dev) e abra /admins.");
-} catch (error) {
-  fail("Falha ao aplicar as migrações.", error);
-} finally {
-  await db.end().catch(() => undefined);
+}
+
+if (driver === "sqlite") {
+  console.log(`Banco local SQLite: ${readSqliteFile(env)}`);
+
+  try {
+    // A primeira query abre o arquivo e cria o schema completo, se faltar.
+    await query(env, "SELECT 1");
+    console.log("Schema verificado (CREATE TABLE IF NOT EXISTS).");
+    await report();
+  } catch (error) {
+    console.error("Não foi possível preparar o banco SQLite.");
+    console.error(`Detalhe: ${error?.code ?? error?.message ?? String(error)}`);
+    process.exitCode = 1;
+  } finally {
+    await closePool();
+  }
+} else {
+  const config = readDbConfig(env);
+  const target = `${config.host}:${config.port}`;
+  const database = config.database.replace(/`/g, "");
+
+  if (!config.host || !database || !config.user) {
+    console.error(
+      [
+        "Faltam dados do banco no arquivo .env.",
+        "",
+        "  DB_HOST=127.0.0.1",
+        "  DB_PORT=3306",
+        "  DB_NAME=renovar",
+        "  DB_USER=root",
+        "  DB_PASSWORD=",
+        "",
+        "Preencha, salve e rode de novo: pnpm db:setup",
+      ].join("\n"),
+    );
+    process.exit(1);
+  }
+
+  let server;
+  try {
+    server = await mysql.createConnection({
+      host: config.host,
+      port: config.port,
+      user: config.user,
+      password: config.password,
+      connectTimeout: 10000,
+    });
+  } catch (error) {
+    const hint = dbErrorHints[String(error?.code ?? "")];
+    console.error(`Não foi possível conectar no MySQL em ${target}.`);
+    if (hint) console.error(`Motivo: ${hint}`);
+    console.error(`Detalhe: ${error?.code ?? error?.message ?? String(error)}`);
+    console.error(
+      [
+        "",
+        "Alternativas:",
+        "  1. conferir DB_USER/DB_PASSWORD com o administrador do MySQL;",
+        "  2. usar o banco local em arquivo: DB_DRIVER=sqlite no .env e rodar de novo.",
+      ].join("\n"),
+    );
+    process.exit(1);
+  }
+
+  try {
+    const [existing] = await server.query(
+      "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?",
+      [database],
+    );
+
+    if (existing.length === 0) {
+      await server.query(
+        `CREATE DATABASE \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+      );
+      console.log(`Banco "${database}" criado.`);
+    } else {
+      console.log(`Banco "${database}" já existia.`);
+    }
+  } catch (error) {
+    console.error(`Não foi possível criar o banco "${database}".`);
+    console.error(`Detalhe: ${error?.code ?? error?.message ?? String(error)}`);
+    await server.end().catch(() => undefined);
+    process.exit(1);
+  }
+
+  await server.end().catch(() => undefined);
+
+  const migrationsDir = path.join(root, "database", "migrations");
+  const files = (await readdir(migrationsDir))
+    .filter((name) => name.endsWith(".sql"))
+    .sort();
+
+  if (files.length === 0) {
+    console.error("Nenhuma migração encontrada em database/migrations.");
+    process.exit(1);
+  }
+
+  let db;
+  try {
+    db = await mysql.createConnection({
+      host: config.host,
+      port: config.port,
+      user: config.user,
+      password: config.password,
+      database,
+      multipleStatements: true,
+      connectTimeout: 10000,
+    });
+  } catch (error) {
+    console.error(`Conectou no servidor, mas não abriu o banco "${database}".`);
+    console.error(`Detalhe: ${error?.code ?? error?.message ?? String(error)}`);
+    process.exit(1);
+  }
+
+  try {
+    for (const file of files) {
+      const sql = await readFile(path.join(migrationsDir, file), "utf8");
+      await db.query(sql);
+      console.log(`Migração aplicada: ${file}`);
+    }
+    console.log(`Concluído em ${sqlTimestamp()}.`);
+  } catch (error) {
+    console.error("Falha ao aplicar as migrações.");
+    console.error(`Detalhe: ${error?.code ?? error?.message ?? String(error)}`);
+    process.exitCode = 1;
+  } finally {
+    await db.end().catch(() => undefined);
+    await closePool();
+  }
+
+  if (!process.exitCode) {
+    try {
+      await report();
+    } catch (error) {
+      console.error(`Não foi possível relatar o estado do banco: ${error?.message ?? error}`);
+    }
+    await closePool();
+  }
 }

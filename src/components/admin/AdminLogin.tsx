@@ -6,7 +6,7 @@ import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginAdmin } from "@/lib/admin-session";
+import { createFirstAdmin, loginAdmin } from "@/lib/admin-session";
 
 const loginErrorMessages: Record<string, string> = {
   invalid_credentials: "E-mail ou senha incorretos.",
@@ -23,6 +23,19 @@ const loginErrorMessages: Record<string, string> = {
     "Não foi possível falar com o servidor. Verifique sua conexão e tente novamente.",
 };
 
+/** Erros da criação do primeiro administrador (só no banco local). */
+const setupErrorMessages: Record<string, string> = {
+  weak_password:
+    "A senha precisa ter pelo menos 12 caracteres e não pode conter o nome do e-mail.",
+  invalid_email: "Informe um e-mail válido.",
+  admin_exists:
+    "Já existe um administrador. Entre com ele ou rode pnpm admin:create para redefinir a senha.",
+  bootstrap_disabled:
+    "A criação pelo painel só existe no banco local (DB_DRIVER=sqlite). Neste servidor, use pnpm admin:create.",
+  db_unavailable: "O banco local não respondeu. Rode: pnpm db:setup",
+  network_error: "Não foi possível falar com o servidor. Tente novamente.",
+};
+
 export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,6 +43,77 @@ export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+
+  // Primeiro acesso: só aparece com banco local (SQLite) e nenhum admin.
+  const [canSetup, setCanSetup] = useState(false);
+  const [setupEmail, setSetupEmail] = useState("");
+  const [setupPassword, setSetupPassword] = useState("");
+  const [setupConfirm, setSetupConfirm] = useState("");
+  const [setupPending, setSetupPending] = useState(false);
+  const [setupError, setSetupError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/health", {
+          headers: { Accept: "application/json" },
+        });
+        const data = (await response.json()) as HealthResponse;
+        if (cancelled) return;
+        setCanSetup(data?.db?.driver === "sqlite" && data?.db?.adminCount === 0);
+      } catch {
+        if (!cancelled) setCanSetup(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSetup = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSetupError("");
+
+    if (!setupEmail.trim()) {
+      setSetupError("Informe o e-mail do administrador.");
+      return;
+    }
+    if (setupPassword.length < 12) {
+      setSetupError("A senha precisa ter pelo menos 12 caracteres.");
+      return;
+    }
+    if (setupPassword !== setupConfirm) {
+      setSetupError("As duas senhas não conferem.");
+      return;
+    }
+
+    setSetupPending(true);
+    const created = await createFirstAdmin(setupEmail.trim(), setupPassword);
+
+    if (!created.ok) {
+      setSetupPending(false);
+      setSetupError(
+        setupErrorMessages[created.error] ??
+          "Não foi possível criar o acesso agora. Tente novamente.",
+      );
+      return;
+    }
+
+    const result = await loginAdmin(setupEmail.trim(), setupPassword);
+    setSetupPending(false);
+    setCanSetup(false);
+
+    if (result.ok) {
+      onSuccess();
+      return;
+    }
+
+    setEmail(setupEmail.trim());
+    setError("Administrador criado. Entre com o e-mail e a senha que você definiu.");
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -100,6 +184,84 @@ export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
             Acesso exclusivo da liderança para publicar textos, imagens, links,
             agenda e mensagens da igreja.
           </p>
+
+          {canSetup && (
+            <div className="mt-6 rounded-2xl border border-dashed border-accent/60 bg-accent/[0.07] p-4">
+              <p className="text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-accent-deep">
+                Primeiro acesso · banco local
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Ainda não existe administrador neste banco. Crie o seu agora — a
+                senha é gravada com hash scrypt, igual à produção.
+              </p>
+
+              <form className="mt-4 grid gap-3" onSubmit={handleSetup} noValidate>
+                <div className="grid gap-1.5">
+                  <Label
+                    htmlFor="setup-email"
+                    className="text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+                  >
+                    E-mail do administrador
+                  </Label>
+                  <Input
+                    id="setup-email"
+                    type="email"
+                    autoComplete="username"
+                    value={setupEmail}
+                    onChange={(event) => setSetupEmail(event.target.value)}
+                    placeholder="admin@adrenovar.com.br"
+                    className="h-10 rounded-xl border-border bg-background"
+                  />
+                </div>
+
+                <div className="grid gap-1.5">
+                  <Label
+                    htmlFor="setup-password"
+                    className="text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+                  >
+                    Senha (12+ caracteres)
+                  </Label>
+                  <Input
+                    id="setup-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={setupPassword}
+                    onChange={(event) => setSetupPassword(event.target.value)}
+                    placeholder="••••••••••••"
+                    className="h-10 rounded-xl border-border bg-background"
+                  />
+                </div>
+
+                <div className="grid gap-1.5">
+                  <Label
+                    htmlFor="setup-confirm"
+                    className="text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+                  >
+                    Repita a senha
+                  </Label>
+                  <Input
+                    id="setup-confirm"
+                    type="password"
+                    autoComplete="new-password"
+                    value={setupConfirm}
+                    onChange={(event) => setSetupConfirm(event.target.value)}
+                    placeholder="••••••••••••"
+                    className="h-10 rounded-xl border-border bg-background"
+                  />
+                </div>
+
+                {setupError && (
+                  <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-xs leading-relaxed text-destructive">
+                    {setupError}
+                  </p>
+                )}
+
+                <Button type="submit" disabled={setupPending} className="h-10 rounded-full">
+                  {setupPending ? "Criando acesso..." : "Criar e entrar"}
+                </Button>
+              </form>
+            </div>
+          )}
 
           <form className="mt-7 grid gap-4" onSubmit={handleSubmit} noValidate>
             <div className="grid gap-2">
@@ -204,6 +366,8 @@ type HealthResponse = {
     missingTables?: string[];
     error?: string;
     /** Só aparece rodando em desenvolvimento (host:porta/banco). */
+    /** "sqlite" (arquivo local) ou "mysql". */
+    driver?: string;
     target?: string;
     user?: string;
     passwordSet?: boolean;
@@ -309,9 +473,12 @@ function ServerDiagnostics() {
     if (db?.target) {
       rows.push({
         label: "Destino (dev)",
-        value: `${db.target} · ${db.user || "?"} · senha ${
-          db.passwordSet ? "definida" : "vazia"
-        }`,
+        value:
+          db.driver === "sqlite"
+            ? `${db.target} · SQLite local, sem senha`
+            : `${db.target} · ${db.user || "?"} · senha ${
+                db.passwordSet ? "definida" : "vazia"
+              }`,
         ok: true,
       });
     }
@@ -404,23 +571,24 @@ function ServerDiagnostics() {
 
           <ol className="mt-3 grid gap-1.5 text-xs leading-relaxed text-muted-foreground">
             <li>
-              1. No computador: instale MySQL/MariaDB (ou XAMPP) e deixe o
-              serviço rodando.
+              1. No computador, o mais simples é o banco em arquivo:{" "}
+              <code>DB_DRIVER=sqlite</code> e <code>DB_FILE=data/dev.sqlite</code>{" "}
+              no <code>.env</code> (não precisa de MySQL nem senha).
             </li>
             <li>
-              2. Preencha <code>DB_HOST</code>, <code>DB_NAME</code>,{" "}
-              <code>DB_USER</code> e <code>DB_PASSWORD</code> no{" "}
-              <code>.env</code>.
+              2. Rode <code>pnpm db:setup</code> (cria as tabelas) e{" "}
+              <code>pnpm admin:create</code> (cria seu acesso).
             </li>
             <li>
-              3. Rode <code>pnpm db:setup</code> (cria o banco e as tabelas) e{" "}
-              <code>pnpm admin:create</code> (cria o acesso).
+              3. Para usar MySQL local, apague <code>DB_DRIVER</code> e preencha{" "}
+              <code>DB_HOST</code>, <code>DB_NAME</code>, <code>DB_USER</code> e{" "}
+              <code>DB_PASSWORD</code>.
             </li>
             <li>4. Reinicie o servidor e volte aqui.</li>
           </ol>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            Na Hostinger: use as variáveis do app no hPanel, importe a migração
-            no phpMyAdmin e reinicie.
+            Na Hostinger: MySQL pelas variáveis do hPanel (sem{" "}
+            <code>DB_DRIVER</code>), migração importada no phpMyAdmin.
           </p>
         </>
       )}

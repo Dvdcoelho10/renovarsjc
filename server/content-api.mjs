@@ -8,7 +8,7 @@
  * (src/content/site.ts), guardado em site_content.payload (JSON).
  */
 import { isJsonRequest, isSameOrigin, readJsonBody, requireAdmin, sendJson } from "./admin-api.mjs";
-import { isDbConfigured, query } from "./db.mjs";
+import { isDbConfigured, query, run, sqlTimestamp } from "./db.mjs";
 
 const MAX_CONTENT_BYTES = 8 * 1024 * 1024;
 
@@ -116,22 +116,28 @@ export async function handleContentPutRequest(req, res, env) {
   }
 
   try {
-    // Compatível com as duas versões da tabela (com ou sem updated_by):
-    // gravamos apenas o payload e o updated_at cuida do resto.
-    await query(
+    // Update-then-insert: funciona igual no MySQL e no SQLite local, e evita
+    // depender de ON DUPLICATE KEY UPDATE (afetados = 0 quando nada muda).
+    const updatedAt = sqlTimestamp();
+    const existing = await query(
       env,
-      `INSERT INTO site_content (id, payload)
-       VALUES (1, ?)
-       ON DUPLICATE KEY UPDATE payload = ?`,
-      [payload, payload],
+      "SELECT id FROM site_content WHERE id = 1 LIMIT 1",
     );
 
-    const rows = await query(
-      env,
-      "SELECT updated_at FROM site_content WHERE id = 1 LIMIT 1",
-    );
+    if (existing.length > 0) {
+      await run(env, "UPDATE site_content SET payload = ?, updated_at = ? WHERE id = 1", [
+        payload,
+        updatedAt,
+      ]);
+    } else {
+      await run(
+        env,
+        "INSERT INTO site_content (id, payload, updated_at) VALUES (1, ?, ?)",
+        [payload, updatedAt],
+      );
+    }
 
-    sendJson(res, 200, { ok: true, updatedAt: rows[0]?.updated_at ?? null });
+    sendJson(res, 200, { ok: true, updatedAt });
   } catch (error) {
     console.error("[conteudo] falha ao salvar:", error?.code ?? error?.message);
     sendJson(res, 500, { error: "save_failed" });

@@ -39,6 +39,11 @@ const apiRoutes: ApiRoute[] = [
     handler: "handleAdminLogoutRequest",
   },
   {
+    path: "/api/admin/bootstrap",
+    module: "server/admin-api.mjs",
+    handler: "handleAdminBootstrapRequest",
+  },
+  {
     path: "/api/admin/session",
     module: "server/admin-api.mjs",
     handler: "handleAdminSessionRequest",

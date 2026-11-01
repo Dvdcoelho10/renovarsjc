@@ -119,11 +119,30 @@ por e-mail/IP em 15 minutos, respondem `429 rate_limited`.
 - **Diagnóstico rápido:** `pnpm check:setup` lista banco, tabelas, administradores, conteúdo
   publicado, SMTP, YouTube e `dist/` sem exibir segredos nem alterar nada.
 
-## 3.3 Rodar o painel no computador (MySQL local)
+## 3.3 Rodar o painel no computador
 
-O painel **não funciona sem banco**: sem `DB_*`, o servidor responde
-`db_not_configured` (é exatamente o aviso que aparece na tela de login). Para testar no
-computador:
+O painel **não funciona sem banco**: sem banco, o login para em `db_not_configured` ou
+`db_unavailable`. Existem dois caminhos no computador.
+
+### Caminho A — banco em arquivo (SQLite), sem instalar nada
+
+É o modo padrão do ambiente local. No `.env`:
+
+```ini
+DB_DRIVER=sqlite
+DB_FILE=data/dev.sqlite
+```
+
+```bash
+pnpm db:setup        # cria data/dev.sqlite com todas as tabelas
+pnpm admin:create    # cria o acesso do painel (ADMIN_EMAIL/ADMIN_PASSWORD)
+```
+
+O arquivo fica em `data/` (ignorado pelo Git) e guarda conteúdo, imagens, administradores e
+sessões. Mesma autenticação de produção: senha com scrypt, cookie `HttpOnly`. Para voltar ao
+MySQL, basta apagar a linha `DB_DRIVER=sqlite`.
+
+### Caminho B — MySQL/MariaDB local
 
 1. Instale MySQL ou MariaDB (ou use XAMPP/WampServer) e deixe o serviço rodando.
    O `mysqld` precisa estar na **mesma máquina** do servidor do app: o app acessa
@@ -166,11 +185,13 @@ Remove-Item Env:ADMIN_PASSWORD
 
 Observações: o banco da Hostinger normalmente **não aceita conexão de fora** (a não ser que
 você habilite *Remote MySQL* com o IP liberado) — nesse caso, crie o administrador pelo
-terminal da própria Hostinger. O preview do Dyad **não traz MySQL**: a tela de login só entra
-depois de existir um MySQL/MariaDB rodando na mesma máquina (passos 1–4) ou de `DB_*` apontar
-para um banco acessível. As respostas de erro ajudam a separar os casos:
-`db_not_configured` = falta variável no `.env`; `db_unavailable` = variáveis ok, conexão
-falhou (serviço parado, senha errada, banco ou tabela ausente).
+terminal da própria Hostinger. O preview do Dyad **não traz MySQL**: ali use o caminho A
+(SQLite) ou um MySQL/MariaDB rodando na mesma máquina. As respostas de erro ajudam a separar
+os casos: `db_not_configured` = falta variável no `.env`; `db_unavailable` = variáveis ok,
+conexão falhou (serviço parado, senha errada, banco ou tabela ausente).
+
+**Na Hostinger, nunca defina `DB_DRIVER`**: sem essa variável o servidor usa MySQL, como
+sempre. O SQLite é só do computador.
 
 ## 4. Verificação após o deploy
 
