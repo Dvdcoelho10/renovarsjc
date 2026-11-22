@@ -20,10 +20,45 @@ const statusText = {
   error: "Não foi possível consultar a API do YouTube",
 } as const;
 
+type ServerCheck = {
+  ok: boolean;
+  config?: { channelId: string; playlistId: string; keyConfigured: boolean };
+  video?: { videoId: string | null; title: string; publishedAt: string | null };
+  error?: string;
+  reason?: string;
+  httpStatus?: number | null;
+  detail?: string;
+  lastAttempt?: { at: string; ok: boolean; error?: string; reason?: string } | null;
+};
+
+/** Traduz o retorno da API para o que precisa ser ajustado no servidor. */
+const serverHints: Record<string, string> = {
+  missing_api_key:
+    "O servidor não recebeu YOUTUBE_API_KEY. Na Hostinger, cadastre nas variáveis do app (hPanel) e reinicie o processo Node.",
+  youtube_error:
+    "O Google recusou a consulta. Veja o motivo abaixo: chave inválida/revogada, cota esgotada ou canal/playlist incorretos.",
+  youtube_unreachable:
+    "O servidor não conseguiu falar com googleapis.com (saída de rede bloqueada ou DNS). Fale com a hospedagem.",
+  youtube_invalid_response:
+    "A resposta do Google veio em formato inesperado. Tente novamente em instantes.",
+  keyInvalid: "A chave da API é inválida — gere outra no Google Cloud e atualize o servidor.",
+  keyExpired: "A chave expirou — gere outra no Google Cloud.",
+  API_KEY_SERVICE_BLOCKED:
+    "A chave existe, mas a YouTube Data API v3 não está liberada para ela no Google Cloud.",
+  quotaExceeded:
+    "Cota diária da YouTube Data API esgotada. Aguarde a renovação (meia-noite no horário do Pacífico) ou aumente a cota.",
+  playlistNotFound:
+    "Playlist de uploads não encontrada — YOUTUBE_CHANNEL_ID provavelmente está errado.",
+  ipRefererBlocked:
+    "A chave tem restrição de IP/referrer que não inclui o servidor da hospedagem.",
+};
+
 export function YoutubeForm({ content, onChange }: Props) {
   const youtube = content.youtube;
   const [state, setState] = useState<YoutubeLatestState | null>(null);
   const [checking, setChecking] = useState(false);
+  const [serverCheck, setServerCheck] = useState<ServerCheck | null>(null);
+  const [serverChecking, setServerChecking] = useState(false);
 
   const patch = <K extends keyof YoutubeCopy>(key: K, value: YoutubeCopy[K]) =>
     onChange({ ...content, youtube: { ...youtube, [key]: value } });
@@ -33,6 +68,28 @@ export function YoutubeForm({ content, onChange }: Props) {
     const next = await fetchLatestVideo({ force: true });
     setState(next);
     setChecking(false);
+  };
+
+  const runServerCheck = async () => {
+    setServerChecking(true);
+    setServerCheck(null);
+
+    try {
+      const response = await fetch("/api/admin/youtube/check", {
+        headers: { Accept: "application/json" },
+        credentials: "same-origin",
+      });
+      const data = (await response.json()) as ServerCheck;
+      setServerCheck(data);
+    } catch {
+      setServerCheck({
+        ok: false,
+        error: "network_error",
+        detail: "Não foi possível falar com o servidor do site.",
+      });
+    } finally {
+      setServerChecking(false);
+    }
   };
 
   useEffect(() => {
@@ -157,10 +214,117 @@ export function YoutubeForm({ content, onChange }: Props) {
         ) : (
           <p className="rounded-2xl border border-dashed border-border bg-background/60 p-5 text-sm leading-relaxed text-muted-foreground">
             {state?.status === "error"
-              ? "A consulta falhou. Confirme se YOUTUBE_API_KEY e YOUTUBE_CHANNEL_ID estão definidas no servidor (arquivo .env ou variáveis da Hostinger), se a YouTube Data API v3 está ativa e se a chave permite o domínio do site."
+              ? "A consulta falhou. Use o diagnóstico abaixo para ver o motivo exato informado pelo servidor."
               : "O player aparece aqui quando houver um vídeo publicado no canal."}
           </p>
         )}
+      </AdminSection>
+
+      <AdminSection
+        title="Diagnóstico da API no servidor"
+        description="O teste roda no servidor onde o site está publicado — na Hostinger, na versão online — e mostra a configuração e o motivo exato de qualquer falha."
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={runServerCheck}
+            disabled={serverChecking}
+            className="rounded-full border-border hover:bg-secondary"
+          >
+            <Server className="mr-1.5 h-4 w-4" aria-hidden="true" />
+            {serverChecking ? "Testando no servidor..." : "Testar no servidor"}
+          </Button>
+
+          {serverCheck && (
+            <span
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ${
+                serverCheck.ok
+                  ? "bg-secondary text-primary"
+                  : "bg-destructive/10 text-destructive"
+              }`}
+            >
+              {serverCheck.ok ? "API respondendo" : "Falhou"}
+            </span>
+          )}
+        </div>
+
+        {serverCheck?.config && (
+          <ul className="grid gap-2 rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
+            <li className="flex items-start justify-between gap-3">
+              <span className="text-muted-foreground">Chave da API</span>
+              <span
+                className={
+                  serverCheck.config.keyConfigured
+                    ? "text-right font-medium text-foreground"
+                    : "text-right font-medium text-destructive"
+                }
+              >
+                {serverCheck.config.keyConfigured
+                  ? "definida no servidor"
+                  : "ausente no servidor"}
+              </span>
+            </li>
+            <li className="flex items-start justify-between gap-3">
+              <span className="text-muted-foreground">Canal</span>
+              <span className="text-right font-medium text-foreground">
+                {serverCheck.config.channelId}
+              </span>
+            </li>
+            <li className="flex items-start justify-between gap-3">
+              <span className="text-muted-foreground">Playlist de uploads</span>
+              <span className="break-all text-right font-medium text-foreground">
+                {serverCheck.config.playlistId}
+              </span>
+            </li>
+          </ul>
+        )}
+
+        {serverCheck?.ok && serverCheck.video && (
+          <p className="rounded-2xl border border-border/70 bg-background/60 p-4 text-sm leading-relaxed text-muted-foreground">
+            O servidor encontrou o vídeo:{" "}
+            <strong className="font-medium text-foreground">
+              {serverCheck.video.title || serverCheck.video.videoId}
+            </strong>
+          </p>
+        )}
+
+        {serverCheck && !serverCheck.ok && (
+          <div className="grid gap-2 rounded-2xl border border-destructive/30 bg-destructive/[0.06] p-4">
+            <p className="text-sm font-medium text-destructive">
+              {serverCheck.error}
+              {serverCheck.httpStatus ? ` · HTTP ${serverCheck.httpStatus}` : ""}
+              {serverCheck.reason ? ` · ${serverCheck.reason}` : ""}
+            </p>
+
+            {serverCheck.detail && (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {serverCheck.detail}
+              </p>
+            )}
+
+            {serverCheck.error === "network_error" ? (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Sem resposta de <code>/api/admin/youtube/check</code>: o processo
+                Node pode não estar atendendo o domínio.
+              </p>
+            ) : (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {[serverHints[serverCheck.error ?? ""], serverHints[serverCheck.reason ?? ""]]
+                  .filter(Boolean)
+                  .join(" ")}
+              </p>
+            )}
+          </div>
+        )}
+
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Se funciona no seu computador e não aqui, a diferença está no servidor:
+          variáveis não cadastradas no hPanel, processo não reiniciado depois de
+          alterá-las, chave revogada (por exemplo, após vazar em um chat) ou cota
+          diária esgotada.
+        </p>
       </AdminSection>
     </div>
   );

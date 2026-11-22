@@ -18,6 +18,7 @@ import {
   readDbConfig,
   readDbDriver,
 } from "./db.mjs";
+import { describeYoutubeConfig, getYoutubeStatus } from "./youtube.mjs";
 
 const REQUIRED_TABLES = [
   "site_content",
@@ -123,6 +124,11 @@ export async function handleHealthRequest(req, res, env, options = {}) {
     db: await inspectDatabase(env, options),
     smtpConfigured: Boolean(env.SMTP_PASSWORD),
     youtubeConfigured: Boolean(env.YOUTUBE_API_KEY),
+    // Canal, playlist e o último resultado da API (sem a chave).
+    youtube: {
+      ...describeYoutubeConfig(env),
+      lastAttempt: getYoutubeStatus(),
+    },
     checkedAt: new Date().toISOString(),
   };
 

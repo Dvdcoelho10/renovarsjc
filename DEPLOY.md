@@ -230,7 +230,26 @@ Depois disso, `/admins`:
 - devolve **404 do host** ao recarregar `/admins` → o `server.mjs` não está atendendo; só ele
   devolve `index.html` para rotas do React Router.
 
-### 5.2 Tabela geral
+### 5.2 “O vídeo aparece no computador, mas não na Hostinger”
+
+A rota `GET /api/youtube/latest` roda no servidor: se ela falhar, o site mostra o aviso de
+indisponível (e o admin logado vê um alerta tracejado no lugar do player).
+
+1. Abra `https://SEU-DOMINIO/api/health` e leia o bloco `youtube`:
+   `keyConfigured` (a chave chegou ao processo?), `channelId`, `playlistId` e `lastAttempt`
+   (último resultado, com `error`, `reason` e `httpStatus`).
+2. Se `keyConfigured: false` → cadastre `YOUTUBE_API_KEY` (e `YOUTUBE_CHANNEL_ID`) nas
+   variáveis do app no hPanel e **reinicie** o processo Node. Variável nova só vale após o
+   restart.
+3. Se `reason` for `keyInvalid`/`keyExpired` → a chave foi revogada ou trocada (acontece se ela
+   vazou em algum chat). Gere outra no Google Cloud e atualize o servidor.
+4. `quotaExceeded` → cota diária da YouTube Data API esgotada (renova à meia-noite do Pacífico).
+   `playlistNotFound` → `YOUTUBE_CHANNEL_ID` errado. `ipRefererBlocked` → restrição de IP na chave.
+5. `youtube_unreachable` → o servidor não alcança `googleapis.com` (saída de rede bloqueada).
+6. No painel, `/admins → aba YouTube → Diagnóstico da API no servidor` executa o teste no
+   servidor da publicação e mostra tudo isso mastigado, sem expor a chave.
+
+### 5.3 Tabela geral
 
 | Sintoma | Causa provável |
 | --- | --- |
@@ -239,7 +258,7 @@ Depois disso, `/admins`:
 | `mail_not_configured` no formulário | `SMTP_PASSWORD` ausente nas variáveis |
 | `send_failed` no formulário | senha incorreta, caixa postal inexistente ou porta bloqueada (teste 587) |
 | E-mail chega marcado como spam | confirme SPF/DKIM do domínio no hPanel (a Hostinger configura ao usar o serviço de e-mail dela) |
-| “Não foi possível carregar o vídeo” | `YOUTUBE_API_KEY` inválida, API desativada ou cota esgotada |
+| “Não foi possível carregar o vídeo” | `YOUTUBE_API_KEY` ausente/inválida no servidor, API desativada ou cota esgotada — ver 5.2 e `/api/health` → `youtube.lastAttempt` |
 | Erro 502/503 no domínio | processo não subiu: confira `PORT`, logs e comando de start |
 | Build falha em “vite: not found” | dependências de desenvolvimento não instaladas: use `--prod=false` na instalação |
 | `/admins` diz “banco não configurado” | `DB_*` ausentes ou Incorretos — rode `pnpm check:setup` |

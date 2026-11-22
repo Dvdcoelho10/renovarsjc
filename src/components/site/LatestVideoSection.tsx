@@ -1,6 +1,8 @@
 import { RefreshCw, Youtube } from "lucide-react";
 
 import type { GivingCopy, YoutubeCopy } from "@/content/site";
+import { AdminNotice } from "@/components/site/AdminNotice";
+import { useAdminSession } from "@/hooks/use-admin-session";
 import { useLatestVideo } from "@/hooks/use-latest-video";
 import { formatLongDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -14,6 +16,7 @@ export function LatestVideoSection({
   giving: GivingCopy;
 }) {
   const { state, refresh } = useLatestVideo(youtube.enabled);
+  const { session } = useAdminSession();
   const showVideo = youtube.enabled;
   const showGiving = giving.enabled && Boolean(giving.qrImageUrl);
 
@@ -99,6 +102,16 @@ export function LatestVideoSection({
                 </div>
               )}
             </div>
+
+            {state.status === "error" && session.status === "authenticated" && (
+              <div className="mt-4">
+                <AdminNotice
+                  title="A API do YouTube falhou neste servidor"
+                  where="O player aparece aqui quando o servidor consegue consultar o canal. Enquanto isso, os visitantes veem o aviso de indisponível."
+                  path="/admins → aba YouTube → Diagnóstico da API no servidor"
+                />
+              </div>
+            )}
 
             {state.status === "ready" && (
               <div className="mt-4 rounded-2xl border border-border/70 bg-background/60 p-4">

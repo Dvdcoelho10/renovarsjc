@@ -27,6 +27,11 @@ const apiRoutes: ApiRoute[] = [
     module: "server/youtube.mjs",
     handler: "handleLatestVideoRequest",
   },
+  {
+    path: "/api/admin/youtube/check",
+    module: "server/youtube.mjs",
+    handler: "handleAdminYoutubeCheckRequest",
+  },
   { path: "/api/contact", module: "server/contact.mjs", handler: "handleContactRequest" },
   {
     path: "/api/admin/login",

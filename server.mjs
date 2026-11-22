@@ -25,7 +25,10 @@ import { isDbConfigured } from "./server/db.mjs";
 import { loadServerEnv } from "./server/env.mjs";
 import { handleHealthRequest } from "./server/health.mjs";
 import { handleMediaRequest, handleMediaUploadRequest } from "./server/media-api.mjs";
-import { handleLatestVideoRequest } from "./server/youtube.mjs";
+import {
+  handleAdminYoutubeCheckRequest,
+  handleLatestVideoRequest,
+} from "./server/youtube.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(root, "dist");
@@ -112,6 +115,11 @@ const server = createServer(async (req, res) => {
 
   if (url.pathname === "/api/youtube/latest") {
     await handleLatestVideoRequest(req, res, env);
+    return;
+  }
+
+  if (url.pathname === "/api/admin/youtube/check") {
+    await handleAdminYoutubeCheckRequest(req, res, env);
     return;
   }
 
