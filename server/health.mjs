@@ -111,10 +111,18 @@ export async function handleHealthRequest(req, res, env, options = {}) {
     return;
   }
 
+  // Avisos de configuração (nada sensível): o que está faltando neste servidor.
+  const warnings = [];
+  if (!env.YOUTUBE_API_KEY) warnings.push("youtube_api_key_missing");
+  if (!env.SMTP_PASSWORD) warnings.push("smtp_password_missing");
+  if (!isDbConfigured(env)) warnings.push("db_not_configured");
+  if (readDbDriver(env) === "sqlite") warnings.push("sqlite_driver_active");
+
   const body = {
     ok: true,
     server: "renovar",
     node: process.version,
+    warnings,
     // Marcadores para saber se o código publicado é o atual.
     features: {
       adminSession: true,

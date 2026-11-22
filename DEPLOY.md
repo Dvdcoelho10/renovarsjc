@@ -40,6 +40,25 @@ O servidor:
 
 ## 3. Variáveis de ambiente (hPanel → Environment Variables)
 
+**O `.env` não vai para o Git** (está no `.gitignore`) — e está certo assim: o repositório leva
+só código. Segredos existem em dois lugares independentes:
+
+| Onde | Para quê | Como definir |
+| --- | --- | --- |
+| `.env` no seu computador | rodar o site localmente | arquivo, nunca versionado |
+| Variáveis do app no hPanel | rodar na Hostinger | painel, uma chave por variável |
+
+Consequência prática: **o que funciona localmente não vai junto no push**. Se `YOUTUBE_API_KEY`
+existe só no `.env`, o servidor online não tem chave e o vídeo não aparece (a rota responde
+`missing_api_key`). O mesmo vale para `SMTP_PASSWORD` (formulário) e `DB_*` (painel).
+
+Depois de cadastrar ou alterar qualquer variável, **reinicie a aplicação** no hPanel: o
+processo lê o ambiente na inicialização. Confira em `https://SEU-DOMINIO/api/health`
+(`youtube.keyConfigured`, `smtpConfigured`, `db.configured`).
+
+**Na Hostinger não defina `DB_DRIVER`** — ela serve só para o banco local em arquivo. Sem essa
+variável, o servidor usa MySQL.
+
 Nunca use o prefixo `VITE_` — ele publica o valor no bundle do navegador.
 
 ### Obrigatórias para o site funcionar por completo

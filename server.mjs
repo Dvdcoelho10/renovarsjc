@@ -21,7 +21,7 @@ import {
 } from "./server/admin-api.mjs";
 import { handleContactRequest } from "./server/contact.mjs";
 import { handleContentGetRequest, handleContentPutRequest } from "./server/content-api.mjs";
-import { isDbConfigured } from "./server/db.mjs";
+import { isDbConfigured, readDbDriver } from "./server/db.mjs";
 import { loadServerEnv } from "./server/env.mjs";
 import { handleHealthRequest } from "./server/health.mjs";
 import { handleMediaRequest, handleMediaUploadRequest } from "./server/media-api.mjs";
@@ -236,6 +236,11 @@ server.listen(port, host, () => {
   if (!isDbConfigured(env)) {
     console.warn(
       "[admin] DB_* não configuradas: o painel usa o conteúdo local e não salva no banco.",
+    );
+  }
+  if (readDbDriver(env) === "sqlite") {
+    console.warn(
+      "[db] DB_DRIVER=sqlite ativo: o conteúdo fica no arquivo local, não no MySQL. Na Hostinger remova essa variável.",
     );
   }
 });
